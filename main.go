@@ -6,14 +6,18 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
-	"github.com/zjl233/gotter/api"
-	"os"
-
 	"github.com/deepmap/oapi-codegen/pkg/middleware"
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
+	_ "github.com/lib/pq"
+	"github.com/zjl233/gotter/api"
+	"github.com/zjl233/gotter/ent"
+	"github.com/zjl233/gotter/ent/migrate"
+	"log"
+	"os"
 )
 
 func main() {
@@ -30,8 +34,26 @@ func main() {
 	// that server names match. We don't know how this thing will be run.
 	swagger.Servers = nil
 
+	//  ==============db================
+	client, err := ent.Open("postgres", "host=localhost port=5432 user=postgres dbname=conduit")
+	if err != nil {
+		log.Fatalf("failed connecting to mysql: %v", err)
+	}
+	//defer client.Close()
+	ctx := context.Background()
+	// Run migration.
+	err = client.Debug().Schema.Create(
+		ctx,
+		migrate.WithDropIndex(true),
+		migrate.WithDropColumn(true),
+	)
+	if err != nil {
+		log.Fatalf("failed creating schema resources: %v", err)
+	}
+	// =================db==================
+
 	// Create an instance of our handler which satisfies the generated interface
-	petStore := api.NewPetStore()
+	petStore := api.NewPostSrv(client)
 
 	// This is how you set up a basic Echo router
 	e := echo.New()

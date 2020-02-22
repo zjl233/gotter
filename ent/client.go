@@ -10,6 +10,7 @@ import (
 	"github.com/zjl233/gotter/ent/migrate"
 
 	"github.com/zjl233/gotter/ent/authtoken"
+	"github.com/zjl233/gotter/ent/post"
 	"github.com/zjl233/gotter/ent/user"
 
 	"github.com/facebookincubator/ent/dialect"
@@ -24,6 +25,8 @@ type Client struct {
 	Schema *migrate.Schema
 	// AuthToken is the client for interacting with the AuthToken builders.
 	AuthToken *AuthTokenClient
+	// Post is the client for interacting with the Post builders.
+	Post *PostClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 }
@@ -36,6 +39,7 @@ func NewClient(opts ...Option) *Client {
 		config:    c,
 		Schema:    migrate.NewSchema(c.driver),
 		AuthToken: NewAuthTokenClient(c),
+		Post:      NewPostClient(c),
 		User:      NewUserClient(c),
 	}
 }
@@ -69,6 +73,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		config:    cfg,
 		AuthToken: NewAuthTokenClient(cfg),
+		Post:      NewPostClient(cfg),
 		User:      NewUserClient(cfg),
 	}, nil
 }
@@ -89,6 +94,7 @@ func (c *Client) Debug() *Client {
 		config:    cfg,
 		Schema:    migrate.NewSchema(cfg.driver),
 		AuthToken: NewAuthTokenClient(cfg),
+		Post:      NewPostClient(cfg),
 		User:      NewUserClient(cfg),
 	}
 }
@@ -174,6 +180,70 @@ func (c *AuthTokenClient) QueryUser(at *AuthToken) *UserQuery {
 	query.sql = sqlgraph.Neighbors(at.driver.Dialect(), step)
 
 	return query
+}
+
+// PostClient is a client for the Post schema.
+type PostClient struct {
+	config
+}
+
+// NewPostClient returns a client for the Post from the given config.
+func NewPostClient(c config) *PostClient {
+	return &PostClient{config: c}
+}
+
+// Create returns a create builder for Post.
+func (c *PostClient) Create() *PostCreate {
+	return &PostCreate{config: c.config}
+}
+
+// Update returns an update builder for Post.
+func (c *PostClient) Update() *PostUpdate {
+	return &PostUpdate{config: c.config}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PostClient) UpdateOne(po *Post) *PostUpdateOne {
+	return c.UpdateOneID(po.ID)
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PostClient) UpdateOneID(id int) *PostUpdateOne {
+	return &PostUpdateOne{config: c.config, id: id}
+}
+
+// Delete returns a delete builder for Post.
+func (c *PostClient) Delete() *PostDelete {
+	return &PostDelete{config: c.config}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *PostClient) DeleteOne(po *Post) *PostDeleteOne {
+	return c.DeleteOneID(po.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *PostClient) DeleteOneID(id int) *PostDeleteOne {
+	return &PostDeleteOne{c.Delete().Where(post.ID(id))}
+}
+
+// Create returns a query builder for Post.
+func (c *PostClient) Query() *PostQuery {
+	return &PostQuery{config: c.config}
+}
+
+// Get returns a Post entity by its id.
+func (c *PostClient) Get(ctx context.Context, id int) (*Post, error) {
+	return c.Query().Where(post.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PostClient) GetX(ctx context.Context, id int) *Post {
+	po, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return po
 }
 
 // UserClient is a client for the User schema.

@@ -45,6 +45,30 @@ func ExampleAuthToken() {
 
 	// Output:
 }
+func ExamplePost() {
+	if dsn == "" {
+		return
+	}
+	ctx := context.Background()
+	drv, err := sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatalf("failed creating database client: %v", err)
+	}
+	defer drv.Close()
+	client := NewClient(Driver(drv))
+	// creating vertices for the post's edges.
+
+	// create post vertex with its edges.
+	po := client.Post.
+		Create().
+		SetContent("string").
+		SaveX(ctx)
+	log.Println("post created:", po)
+
+	// query edges.
+
+	// Output:
+}
 func ExampleUser() {
 	if dsn == "" {
 		return
