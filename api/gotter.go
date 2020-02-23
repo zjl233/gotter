@@ -18,7 +18,6 @@
 package api
 
 import (
-	"context"
 	"github.com/labstack/echo/v4"
 	"github.com/zjl233/gotter/ent"
 	"github.com/zjl233/gotter/ent/user"
@@ -51,7 +50,7 @@ func (s *PostSrv) Login(ctx echo.Context) error {
 
 	// refactor: extract two step below to User.CheckPassword
 	// 1. Query user from db
-	u, err := s.db.User.Query().Where(user.UsernameEQ(queryUser.Username)).Only(context.Background())
+	u, err := s.db.User.Query().Where(user.UsernameEQ(queryUser.Username)).Only(ctx.Request().Context())
 	if err != nil {
 		return sendPetstoreError(ctx, http.StatusNotFound, "username or password error")
 	}
@@ -77,7 +76,7 @@ func (s *PostSrv) SignUp(ctx echo.Context) error {
 	}
 
 	// Check duplicated username
-	exist, _ := s.db.User.Query().Where(user.UsernameEQ(newUser.Username)).Exist(context.Background())
+	exist, _ := s.db.User.Query().Where(user.UsernameEQ(newUser.Username)).Exist(ctx.Request().Context())
 	if exist {
 		return sendPetstoreError(ctx, http.StatusBadRequest, "username duplicated")
 	}
@@ -94,7 +93,7 @@ func (s *PostSrv) SignUp(ctx echo.Context) error {
 	u, err := s.db.User.Create().
 		SetUsername(newUser.Username).
 		SetPasswordHash(hash).
-		Save(context.Background())
+		Save(ctx.Request().Context())
 	if err != nil {
 		//return sendPetstoreError(ctx, http.StatusBadRequest, err.Error())
 		return err
@@ -129,7 +128,7 @@ func (s *PostSrv) AddPost(ctx echo.Context) error {
 	// Save new post to db
 	post, err := s.db.Post.Create().
 		SetContent(newPost.Content).
-		Save(context.Background())
+		Save(ctx.Request().Context())
 	if err != nil {
 		return err
 	}
