@@ -17,6 +17,15 @@ import (
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+
+	// (POST /auth/login)
+	Login(ctx echo.Context) error
+
+	// (POST /auth/signup)
+	SignUp(ctx echo.Context) error
+
+	// (GET /auth/whoami)
+	AuthTest(ctx echo.Context, params AuthTestParams) error
 	// Returns all posts
 	// (GET /posts)
 	FindPosts(ctx echo.Context, params FindPostsParams) error
@@ -34,6 +43,57 @@ type ServerInterface interface {
 // ServerInterfaceWrapper converts echo contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
+}
+
+// Login converts echo context to params.
+func (w *ServerInterfaceWrapper) Login(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.Login(ctx)
+	return err
+}
+
+// SignUp converts echo context to params.
+func (w *ServerInterfaceWrapper) SignUp(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.SignUp(ctx)
+	return err
+}
+
+// AuthTest converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthTest(ctx echo.Context) error {
+	var err error
+
+	ctx.Set("bearerAuth.Scopes", []string{""})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AuthTestParams
+
+	headers := ctx.Request().Header
+	// ------------- Required header parameter "x-auth" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("x-auth")]; found {
+		var XAuth string
+		n := len(valueList)
+		if n != 1 {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for x-auth, got %d", n))
+		}
+
+		err = runtime.BindStyledParameter("simple", false, "x-auth", valueList[0], &XAuth)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter x-auth: %s", err))
+		}
+
+		params.XAuth = XAuth
+	} else {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Header parameter x-auth is required, but not found"))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.AuthTest(ctx, params)
+	return err
 }
 
 // FindPosts converts echo context to params.
@@ -125,6 +185,9 @@ func RegisterHandlers(router interface {
 		Handler: si,
 	}
 
+	router.POST("/auth/login", wrapper.Login)
+	router.POST("/auth/signup", wrapper.SignUp)
+	router.GET("/auth/whoami", wrapper.AuthTest)
 	router.GET("/posts", wrapper.FindPosts)
 	router.POST("/posts", wrapper.AddPost)
 	router.DELETE("/posts/:id", wrapper.DeletePostByID)
@@ -135,21 +198,28 @@ func RegisterHandlers(router interface {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"AJvgqucUAAA=",
 }
 
 // GetSwagger returns the Swagger specification corresponding to the generated code

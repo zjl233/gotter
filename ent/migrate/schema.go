@@ -3,8 +3,6 @@
 package migrate
 
 import (
-	"github.com/zjl233/gotter/ent/user"
-
 	"github.com/facebookincubator/ent/dialect/sql/schema"
 	"github.com/facebookincubator/ent/schema/field"
 )
@@ -53,8 +51,6 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "username", Type: field.TypeString, Unique: true, Size: 15},
 		{Name: "password_hash", Type: field.TypeString},
-		{Name: "nickname", Type: field.TypeString, Size: 31},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"active", "inactive", "suspend"}, Default: user.DefaultStatus},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{

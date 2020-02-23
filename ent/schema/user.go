@@ -26,8 +26,8 @@ func (User) Fields() []ent.Field {
 			MinLen(1).MaxLen(15).
 			Match(regexp.MustCompile("[a-zA-Z_]+$")),
 		field.String("password_hash").Sensitive(),
-		field.String("nickname").MinLen(1).MaxLen(31),
-		field.Enum("status").Values("active", "inactive", "suspend").Default("active"),
+		//field.String("nickname").MinLen(1).MaxLen(31),
+		//field.Enum("status").Values("active", "inactive", "suspend").Default("active"),
 	}
 }
 

@@ -3,7 +3,6 @@
 package user
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/facebookincubator/ent"
@@ -23,10 +22,6 @@ const (
 	FieldUsername = "username"
 	// FieldPasswordHash holds the string denoting the password_hash vertex property in the database.
 	FieldPasswordHash = "password_hash"
-	// FieldNickname holds the string denoting the nickname vertex property in the database.
-	FieldNickname = "nickname"
-	// FieldStatus holds the string denoting the status vertex property in the database.
-	FieldStatus = "status"
 
 	// Table holds the table name of the user in the database.
 	Table = "users"
@@ -46,8 +41,6 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldUsername,
 	FieldPasswordHash,
-	FieldNickname,
-	FieldStatus,
 }
 
 var (
@@ -88,50 +81,4 @@ var (
 			return nil
 		}
 	}()
-
-	// descNickname is the schema descriptor for nickname field.
-	descNickname = fields[2].Descriptor()
-	// NicknameValidator is a validator for the "nickname" field. It is called by the builders before save.
-	NicknameValidator = func() func(string) error {
-		validators := descNickname.Validators
-		fns := [...]func(string) error{
-			validators[0].(func(string) error),
-			validators[1].(func(string) error),
-		}
-		return func(nickname string) error {
-			for _, fn := range fns {
-				if err := fn(nickname); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}()
 )
-
-// Status defines the type for the status enum field.
-type Status string
-
-// StatusActive is the default Status.
-const DefaultStatus = StatusActive
-
-// Status values.
-const (
-	StatusActive   Status = "active"
-	StatusInactive Status = "inactive"
-	StatusSuspend  Status = "suspend"
-)
-
-func (s Status) String() string {
-	return string(s)
-}
-
-// StatusValidator is a validator for the "s" field enum values. It is called by the builders before save.
-func StatusValidator(s Status) error {
-	switch s {
-	case StatusActive, StatusInactive, StatusSuspend:
-		return nil
-	default:
-		return fmt.Errorf("user: invalid enum value for status field: %q", s)
-	}
-}

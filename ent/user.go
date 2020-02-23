@@ -24,10 +24,6 @@ type User struct {
 	Username string `json:"username,omitempty"`
 	// PasswordHash holds the value of the "password_hash" field.
 	PasswordHash string `json:"-"`
-	// Nickname holds the value of the "nickname" field.
-	Nickname string `json:"nickname,omitempty"`
-	// Status holds the value of the "status" field.
-	Status user.Status `json:"status,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the UserQuery when eager-loading is set.
 	Edges UserEdges `json:"edges"`
@@ -59,8 +55,6 @@ func (*User) scanValues() []interface{} {
 		&sql.NullTime{},   // updated_at
 		&sql.NullString{}, // username
 		&sql.NullString{}, // password_hash
-		&sql.NullString{}, // nickname
-		&sql.NullString{}, // status
 	}
 }
 
@@ -95,16 +89,6 @@ func (u *User) assignValues(values ...interface{}) error {
 		return fmt.Errorf("unexpected type %T for field password_hash", values[3])
 	} else if value.Valid {
 		u.PasswordHash = value.String
-	}
-	if value, ok := values[4].(*sql.NullString); !ok {
-		return fmt.Errorf("unexpected type %T for field nickname", values[4])
-	} else if value.Valid {
-		u.Nickname = value.String
-	}
-	if value, ok := values[5].(*sql.NullString); !ok {
-		return fmt.Errorf("unexpected type %T for field status", values[5])
-	} else if value.Valid {
-		u.Status = user.Status(value.String)
 	}
 	return nil
 }
@@ -144,10 +128,6 @@ func (u *User) String() string {
 	builder.WriteString(", username=")
 	builder.WriteString(u.Username)
 	builder.WriteString(", password_hash=<sensitive>")
-	builder.WriteString(", nickname=")
-	builder.WriteString(u.Nickname)
-	builder.WriteString(", status=")
-	builder.WriteString(fmt.Sprintf("%v", u.Status))
 	builder.WriteByte(')')
 	return builder.String()
 }

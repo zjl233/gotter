@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen --package=api --generate types -o gotter-types.gen.go ../spec/gotter.yaml
-//go:generate go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen --package=api --generate server,spec -o gotter-server.gen.go ../spec/gotter.yaml
+//go:generate go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen --package=api --generate types -o gotter_types.gen.go ../spec/gotter.yaml
+//go:generate go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen --package=api --generate server,spec -o gotter_server.gen.go ../spec/gotter.yaml
 
 package api
 
@@ -21,6 +21,9 @@ import (
 	"context"
 	"github.com/labstack/echo/v4"
 	"github.com/zjl233/gotter/ent"
+	"github.com/zjl233/gotter/ent/user"
+	"gopkg.in/hlandau/passlib.v1"
+
 	"net/http"
 )
 
@@ -39,12 +42,84 @@ type PostSrv struct {
 	db *ent.Client
 }
 
+func (s *PostSrv) Login(ctx echo.Context) error {
+	// Expect username and password in request body
+	var queryUser LoginJSONBody
+	if err := ctx.Bind(&queryUser); err != nil {
+		return sendPetstoreError(ctx, http.StatusBadRequest, "Invalid format for NewPet")
+	}
+
+	// refactor: extract two step below to User.CheckPassword
+	// 1. Query user from db
+	u, err := s.db.User.Query().Where(user.UsernameEQ(queryUser.Username)).Only(context.Background())
+	if err != nil {
+		return sendPetstoreError(ctx, http.StatusNotFound, "username or password error")
+	}
+
+	// 2. Vertify query password and hashed password
+	err = passlib.VerifyNoUpgrade(queryUser.Password, u.PasswordHash)
+	if err != nil {
+		return sendPetstoreError(ctx, http.StatusNotFound, "username or password error")
+	}
+
+	// todo return json web token
+	if err = ctx.JSON(http.StatusCreated, u); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *PostSrv) SignUp(ctx echo.Context) error {
+	var newUser NewUser
+	if err := ctx.Bind(&newUser); err != nil {
+		return err
+	}
+
+	// Check duplicated username
+	exist, _ := s.db.User.Query().Where(user.UsernameEQ(newUser.Username)).Exist(context.Background())
+	if exist {
+		return sendPetstoreError(ctx, http.StatusBadRequest, "username duplicated")
+	}
+
+	// refactor: extract two step below to User.SetPassword
+	// 1. Hash password
+	hash, err := passlib.Hash(newUser.Password)
+	if err != nil {
+		// couldn't hash password for some reason
+		return ctx.JSON(http.StatusInternalServerError, "Failed to Hash password")
+	}
+
+	// 2. Save new user to db
+	u, err := s.db.User.Create().
+		SetUsername(newUser.Username).
+		SetPasswordHash(hash).
+		Save(context.Background())
+	if err != nil {
+		//return sendPetstoreError(ctx, http.StatusBadRequest, err.Error())
+		return err
+	}
+
+	// Now, we have to serialize User
+	if err = ctx.JSON(http.StatusCreated, User{
+		Id:       int32(u.ID),
+		Username: u.Username,
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *PostSrv) AuthTest(ctx echo.Context, params AuthTestParams) error {
+	panic("implement me")
+}
+
 func (s *PostSrv) FindPosts(ctx echo.Context, params FindPostsParams) error {
 	panic("implement me")
 }
 
 func (s *PostSrv) AddPost(ctx echo.Context) error {
-
 	// We expect a NewPet object in the request body.
 	var newPost NewPost
 	if err := ctx.Bind(&newPost); err != nil {

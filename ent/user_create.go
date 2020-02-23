@@ -21,8 +21,6 @@ type UserCreate struct {
 	updated_at    *time.Time
 	username      *string
 	password_hash *string
-	nickname      *string
-	status        *user.Status
 	tokens        map[int]struct{}
 }
 
@@ -66,26 +64,6 @@ func (uc *UserCreate) SetPasswordHash(s string) *UserCreate {
 	return uc
 }
 
-// SetNickname sets the nickname field.
-func (uc *UserCreate) SetNickname(s string) *UserCreate {
-	uc.nickname = &s
-	return uc
-}
-
-// SetStatus sets the status field.
-func (uc *UserCreate) SetStatus(u user.Status) *UserCreate {
-	uc.status = &u
-	return uc
-}
-
-// SetNillableStatus sets the status field if the given value is not nil.
-func (uc *UserCreate) SetNillableStatus(u *user.Status) *UserCreate {
-	if u != nil {
-		uc.SetStatus(*u)
-	}
-	return uc
-}
-
 // AddTokenIDs adds the tokens edge to AuthToken by ids.
 func (uc *UserCreate) AddTokenIDs(ids ...int) *UserCreate {
 	if uc.tokens == nil {
@@ -124,19 +102,6 @@ func (uc *UserCreate) Save(ctx context.Context) (*User, error) {
 	}
 	if uc.password_hash == nil {
 		return nil, errors.New("ent: missing required field \"password_hash\"")
-	}
-	if uc.nickname == nil {
-		return nil, errors.New("ent: missing required field \"nickname\"")
-	}
-	if err := user.NicknameValidator(*uc.nickname); err != nil {
-		return nil, fmt.Errorf("ent: validator failed for field \"nickname\": %v", err)
-	}
-	if uc.status == nil {
-		v := user.DefaultStatus
-		uc.status = &v
-	}
-	if err := user.StatusValidator(*uc.status); err != nil {
-		return nil, fmt.Errorf("ent: validator failed for field \"status\": %v", err)
 	}
 	return uc.sqlSave(ctx)
 }
@@ -192,22 +157,6 @@ func (uc *UserCreate) sqlSave(ctx context.Context) (*User, error) {
 			Column: user.FieldPasswordHash,
 		})
 		u.PasswordHash = *value
-	}
-	if value := uc.nickname; value != nil {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  *value,
-			Column: user.FieldNickname,
-		})
-		u.Nickname = *value
-	}
-	if value := uc.status; value != nil {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeEnum,
-			Value:  *value,
-			Column: user.FieldStatus,
-		})
-		u.Status = *value
 	}
 	if nodes := uc.tokens; len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

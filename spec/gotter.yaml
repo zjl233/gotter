@@ -12,18 +12,90 @@ info:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
 servers:
-  - url: http://localhost:3001
+  - url: http://localhost:8080
 paths:
-  /auth:
+  /auth/signup:
+    post:
+      description: create new user
+      operationId: signUp
+      requestBody:
+        description: Sign up new user
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewUser"
+      responses:
+        '201':
+          description: New user created
+          content:
+            application/json: 
+              schema:
+                $ref: '#/components/schemas/User'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/login:
+    post:
+      description: Login user
+      operationId: login
+      requestBody:
+        description: crident to login
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                  format: password      
+      responses:
+        '200':
+          description: Login success
+          content:
+            application/json: 
+              schema:
+                $ref: '#/components/schemas/User'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+          
+  /auth/whoami:
     get:
       security:
         - bearerAuth: []
-      description: just a auth test
+      description: return current user
+      operationId: authTest
+      parameters:
+        - in: header
+          name: x-auth
+          required: true
+          description: json web token
+          schema:
+            type: string
       responses:
         "200":
-          description: OK
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+
   /posts:
     get:
       summary: Returns all posts
@@ -143,13 +215,45 @@ components:
               format: int64
               description: Unique id of the post
 
+    User:
+      required:
+        - id
+        - username
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: Unique id of the post
+        username:
+          type: string
+          description: Unique name of the user
+
     NewPost:
       required:
         - content
       properties:
         content:
           type: string
-          description: content of the post
+          description: Content of the post
+
+    NewUser:
+      required:
+        - username
+        - password
+        - password_confirm
+      properties:
+        username:
+          type: string
+          description: User name, Unique, cannot change
+        password:
+          type: string
+          format: password
+          description: User password, at least 8 character
+        password_confirm:
+          type: string
+          format: password
+          description: Must same as password
+        
 
     Error:
       required:
@@ -167,6 +271,7 @@ components:
   responses:
     UnauthorizedError:
       description: Access token is missing or invalid
+
 
   securitySchemes:
     bearerAuth:

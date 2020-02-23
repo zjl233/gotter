@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"github.com/facebookincubator/ent/dialect/sql"
-
-	"github.com/zjl233/gotter/ent/user"
 )
 
 // dsn for the database. In order to run the tests locally, run the following command:
@@ -97,8 +95,6 @@ func ExampleUser() {
 		SetUpdatedAt(time.Now()).
 		SetUsername("string").
 		SetPasswordHash("string").
-		SetNickname("string").
-		SetStatus(user.StatusActive).
 		AddTokens(at0).
 		SaveX(ctx)
 	log.Println("user created:", u)

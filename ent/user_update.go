@@ -4,7 +4,6 @@ package ent
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/facebookincubator/ent/dialect/sql"
@@ -22,8 +21,6 @@ type UserUpdate struct {
 	updated_at *time.Time
 
 	password_hash *string
-	nickname      *string
-	status        *user.Status
 	tokens        map[int]struct{}
 	removedTokens map[int]struct{}
 	predicates    []predicate.User
@@ -44,26 +41,6 @@ func (uu *UserUpdate) SetUpdatedAt(t time.Time) *UserUpdate {
 // SetPasswordHash sets the password_hash field.
 func (uu *UserUpdate) SetPasswordHash(s string) *UserUpdate {
 	uu.password_hash = &s
-	return uu
-}
-
-// SetNickname sets the nickname field.
-func (uu *UserUpdate) SetNickname(s string) *UserUpdate {
-	uu.nickname = &s
-	return uu
-}
-
-// SetStatus sets the status field.
-func (uu *UserUpdate) SetStatus(u user.Status) *UserUpdate {
-	uu.status = &u
-	return uu
-}
-
-// SetNillableStatus sets the status field if the given value is not nil.
-func (uu *UserUpdate) SetNillableStatus(u *user.Status) *UserUpdate {
-	if u != nil {
-		uu.SetStatus(*u)
-	}
 	return uu
 }
 
@@ -112,16 +89,6 @@ func (uu *UserUpdate) Save(ctx context.Context) (int, error) {
 	if uu.updated_at == nil {
 		v := user.UpdateDefaultUpdatedAt()
 		uu.updated_at = &v
-	}
-	if uu.nickname != nil {
-		if err := user.NicknameValidator(*uu.nickname); err != nil {
-			return 0, fmt.Errorf("ent: validator failed for field \"nickname\": %v", err)
-		}
-	}
-	if uu.status != nil {
-		if err := user.StatusValidator(*uu.status); err != nil {
-			return 0, fmt.Errorf("ent: validator failed for field \"status\": %v", err)
-		}
 	}
 	return uu.sqlSave(ctx)
 }
@@ -180,20 +147,6 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: user.FieldPasswordHash,
 		})
 	}
-	if value := uu.nickname; value != nil {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  *value,
-			Column: user.FieldNickname,
-		})
-	}
-	if value := uu.status; value != nil {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeEnum,
-			Value:  *value,
-			Column: user.FieldStatus,
-		})
-	}
 	if nodes := uu.removedTokens; len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -249,8 +202,6 @@ type UserUpdateOne struct {
 	updated_at *time.Time
 
 	password_hash *string
-	nickname      *string
-	status        *user.Status
 	tokens        map[int]struct{}
 	removedTokens map[int]struct{}
 }
@@ -264,26 +215,6 @@ func (uuo *UserUpdateOne) SetUpdatedAt(t time.Time) *UserUpdateOne {
 // SetPasswordHash sets the password_hash field.
 func (uuo *UserUpdateOne) SetPasswordHash(s string) *UserUpdateOne {
 	uuo.password_hash = &s
-	return uuo
-}
-
-// SetNickname sets the nickname field.
-func (uuo *UserUpdateOne) SetNickname(s string) *UserUpdateOne {
-	uuo.nickname = &s
-	return uuo
-}
-
-// SetStatus sets the status field.
-func (uuo *UserUpdateOne) SetStatus(u user.Status) *UserUpdateOne {
-	uuo.status = &u
-	return uuo
-}
-
-// SetNillableStatus sets the status field if the given value is not nil.
-func (uuo *UserUpdateOne) SetNillableStatus(u *user.Status) *UserUpdateOne {
-	if u != nil {
-		uuo.SetStatus(*u)
-	}
 	return uuo
 }
 
@@ -332,16 +263,6 @@ func (uuo *UserUpdateOne) Save(ctx context.Context) (*User, error) {
 	if uuo.updated_at == nil {
 		v := user.UpdateDefaultUpdatedAt()
 		uuo.updated_at = &v
-	}
-	if uuo.nickname != nil {
-		if err := user.NicknameValidator(*uuo.nickname); err != nil {
-			return nil, fmt.Errorf("ent: validator failed for field \"nickname\": %v", err)
-		}
-	}
-	if uuo.status != nil {
-		if err := user.StatusValidator(*uuo.status); err != nil {
-			return nil, fmt.Errorf("ent: validator failed for field \"status\": %v", err)
-		}
 	}
 	return uuo.sqlSave(ctx)
 }
@@ -392,20 +313,6 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (u *User, err error) {
 			Type:   field.TypeString,
 			Value:  *value,
 			Column: user.FieldPasswordHash,
-		})
-	}
-	if value := uuo.nickname; value != nil {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  *value,
-			Column: user.FieldNickname,
-		})
-	}
-	if value := uuo.status; value != nil {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeEnum,
-			Value:  *value,
-			Column: user.FieldStatus,
 		})
 	}
 	if nodes := uuo.removedTokens; len(nodes) > 0 {
