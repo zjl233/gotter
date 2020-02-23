@@ -14,6 +14,16 @@ info:
 servers:
   - url: http://localhost:3001
 paths:
+  /auth:
+    get:
+      security:
+        - bearerAuth: []
+      description: just a auth test
+      responses:
+        "200":
+          description: OK
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
   /posts:
     get:
       summary: Returns all posts
@@ -35,20 +45,20 @@ paths:
             type: integer
             format: int32
       responses:
-        '200':
+        "200":
           description: posts response
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Post'
+                  $ref: "#/components/schemas/Post"
         default:
           description: unexpected error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
     post:
       summary: Creates a new post
       description: Creates a new post in the store. Duplicates are allowed
@@ -59,20 +69,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NewPost'
+              $ref: "#/components/schemas/NewPost"
       responses:
-        '201':
+        "201":
           description: post response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Post'
+                $ref: "#/components/schemas/Post"
         default:
           description: unexpected error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
   /posts/{id}:
     get:
       summary: Returns a post by ID
@@ -87,18 +97,18 @@ paths:
             type: integer
             format: int32
       responses:
-        '200':
+        "200":
           description: post response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Post'
+                $ref: "#/components/schemas/Post"
         default:
           description: unexpected error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
     delete:
       summary: Deletes a post by ID
       description: deletes a single post based on the ID supplied
@@ -112,21 +122,21 @@ paths:
             type: integer
             format: int32
       responses:
-        '204':
+        "204":
           description: post deleted
         default:
           description: unexpected error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 components:
   schemas:
     Post:
       allOf:
-        - $ref: '#/components/schemas/NewPost'
+        - $ref: "#/components/schemas/NewPost"
         - required:
-          - id
+            - id
           properties:
             id:
               type: integer
@@ -153,3 +163,13 @@ components:
         message:
           type: string
           description: Error message
+
+  responses:
+    UnauthorizedError:
+      description: Access token is missing or invalid
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
