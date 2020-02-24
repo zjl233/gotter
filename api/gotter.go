@@ -18,10 +18,13 @@
 package api
 
 import (
+	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	"github.com/zjl233/gotter/ent"
+	"github.com/zjl233/gotter/ent/authtoken"
 	"github.com/zjl233/gotter/ent/user"
 	"gopkg.in/hlandau/passlib.v1"
+	"time"
 
 	"net/http"
 )
@@ -61,8 +64,27 @@ func (s *PostSrv) Login(ctx echo.Context) error {
 		return sendPetstoreError(ctx, http.StatusNotFound, "username or password error")
 	}
 
-	// todo return json web token
-	if err = ctx.JSON(http.StatusCreated, u); err != nil {
+	// create token
+	token := jwt.New(jwt.SigningMethodHS256)
+
+	// Set claims
+	claims := token.Claims.(jwt.MapClaims)
+	claims["username"] = u.Username
+	claims["admin"] = true
+	claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
+
+	// Generate encoded token and send it as response.
+	t, err := token.SignedString([]byte("secret"))
+	if err != nil {
+		return err
+	}
+
+	// Save encoded token to db
+	if _, err = s.db.AuthToken.Create().SetToken(t).SetUser(u).Save(ctx.Request().Context()); err != nil {
+		return err
+	}
+
+	if err = ctx.JSON(http.StatusOK, t); err != nil {
 		return err
 	}
 
@@ -111,7 +133,20 @@ func (s *PostSrv) SignUp(ctx echo.Context) error {
 }
 
 func (s *PostSrv) AuthTest(ctx echo.Context, params AuthTestParams) error {
-	panic("implement me")
+	// Query token by x-auth header
+	a, err := s.db.AuthToken.Query().Where(authtoken.TokenEQ(params.XAuth)).Only(ctx.Request().Context())
+	if err != nil {
+		return err
+	}
+
+	// Query user by token
+	u, err := s.db.AuthToken.QueryUser(a).Only(ctx.Request().Context())
+	if err != nil {
+		return err
+	}
+
+	return ctx.JSON(200, u)
+
 }
 
 func (s *PostSrv) FindPosts(ctx echo.Context, params FindPostsParams) error {

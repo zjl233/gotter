@@ -67,8 +67,6 @@ func (w *ServerInterfaceWrapper) SignUp(ctx echo.Context) error {
 func (w *ServerInterfaceWrapper) AuthTest(ctx echo.Context) error {
 	var err error
 
-	ctx.Set("bearerAuth.Scopes", []string{""})
-
 	// Parameter object where we will unmarshal all parameters from the context
 	var params AuthTestParams
 
@@ -198,28 +196,27 @@ func RegisterHandlers(router interface {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+RX0W/bthP+Vwj+fo+q5abFMPhpadwOHro2WBrsoQgGRjpZ3ERSvTvF9QL97wNJybEt",
-	"OW7atQ2wp8QidffdfR+/o25l5kztLFgmObuVCFQ7SxB+XFrVcOlQ/w35S0SH/mEOlKGuWTsrZ/I0y4BI",
-	"sPsLrNAkjCbSdikcCm1vVKVz2baJpKwEo0LQTaAaXQ3IOubKXA7D8GGzCGuJLBwaxXImteVnJzKRvK4h",
-	"/oQloGwTaYBILQ8G6pc3rxKjtssAEeFDoxFyOXsvu4T99qs2kW9gde6Ix4BbBsvDlGdxQbhCcAmi9m8f",
-	"TxyDdRkvCUZaVSuilcN8mNLvF/1yIhSLChSx+FFkpUKVMeB2HzeBBrCSzdofmbOFRjNM9mtDLEgZEIrE",
-	"VqhPCt8QoFUGDtTglxJxafWHBhKRKWsd+xrsJ5C3CZ1sIxjU41vcM6qq6m0hZ+9v5f8RCjmT/0vvjkXa",
-	"iTftJdAm+4zoMS4CeKHzPQFsq/iH5yMq3itH5/Kq9WDHxfC5qQ8coHt4iUH9Yh/Wbz5Kh/bd34S9Cm4A",
-	"WYOa1xe+sbGMa1AIeNpweffrVQ/3l9/fyc5DfKK4epe4ZK5l6wNrW7j+TKosUAtG6UrOpKo1gzI/0Uot",
-	"l4AT7WQiY6XyIj4Tp+cL8Q6U8YCx6iLP0nTrnTbZN0DBK80MKLLKWRCqrmUiK52BpdDFLsdprbISxMlk",
-	"uhOdZmm6Wq0mKixPHC7T7l1KXy/OXr65ePnkZDKdlGwqn5wBDb0tLgBvdAZjENOwJfXt0Vz5LT+7gO/0",
-	"fCETeQNIEfnTyXQy9TFdDVbVWs7ks/DIHxYuAy2pHwBp5ZbaBul152W3Ba/9ci8Gr03lFxZ5vySjIID4",
-	"hcvXe56p6rrSWXgj/ZNcSBMP3P3G92CXebhpXAVN7daaoc69qbMT1VZtMQxjAyHu1gw9mU4fVPF9BhQc",
-	"YARUJICaMIujRAvVVPyvJY4zeyRzY+FjDRlDLqDf0yadbEgvbVMf1k2GoBiEhdW4eC700l7WX6CeI2Z+",
-	"qJ0+r2jqbWDHOH761Tl+04ERsWv546F5VTpltI+9hBGWEbhBK7IG0R+cUaa977+DMKNqhcoAA1KYx7ux",
-	"fDliBdfxvim94XsLBJWHoJ3VfnzicQ1YS7a6sG8GV9/h1J5td6RN5POoorFQG2zp8Eq+PVBDy7ZH6Xt/",
-	"dfBM+RNIBzn6LXBEQlVVuCuQKNCZMONpTQz+X8WbmS9KRUL1N/8Bm6+0zc9DviN0ErAoNBKHpN5To1h6",
-	"Yj80gOs7Xl1REPAOr4WqaIfYo1ccf3nbRWHUR20aI2xjrgH93QaBmorpKKBKG/3FeL5UeprB0DENdvfW",
-	"PrtCVOsxTUbyezzf22MSSY0xCtdjEg0fKaNz5Sw4JAkVHDxIS9soZnYIEzFvInq/B8GHdCvIh66UBxl/",
-	"vQEUWRm24rw7DSrP/Z8N8m86iA6BC/18jAoZ0i7vrC+91XkbpVIBj3zexOf+bdJ2WcVvJnGtCHLhonoW",
-	"c0GNL2tEK/Pwuu/Zi/Vifsz4FnNvM73pdZA6j/F37zuLCV9Ph+fY59jL82HxAUmEkT8mSucbUiIba7GY",
-	"e3z3D7E96jaMBl7GR9XDSSuAs/KbcTb97x7rfVqjBuKtB296qna+1yuXqap0xLNn0+lT2V61/wQAAP//",
-	"AJvgqucUAAA=",
+	"H4sIAAAAAAAC/+RXUU/kNhD+K5bbx9xm4WiF8lSOpdVKlEPleDqhyiSTxG1sB8+EZYvy3yvbybK7ybIC",
+	"2itSn2Bje+ab+b6ZsR95alRtNGhCnjxyC1gbjeB/XGvRUGms/AuyM2uNdR8zwNTKmqTRPOEnaQqIjMyf",
+	"oJlEpiSi1AUzlkl9LyqZ8baNOKYlKOGNrgzV1tRgSQZfqclgaN5vZn4t4rmxShBPuNT08ZBHnJY1hJ9Q",
+	"gOVtxBUgimKnoX55dRTJSl14iBbuGmkh48lX3jnst9+0Eb+AxaVBGgOuCTQNXZ6GBWZyRiWw2p3e7zgY",
+	"6zxeI4ykqhaIC2OzoUu3n/XLERPEKhBI7JilpbAiJbDreVwZirgSD+egCyp5cjiNuJK6/3k8wBytDv6e",
+	"Gp1Lq4ZIfm2QGAoFTCBb8zPme2C+QbBaKNgRoFuK2LWWdw1ELBVaG3IBas/sWiQHP2xEcrAv+yu/0Tq8",
+	"QbCOnF4Loqo+5zz5+si/t5DzhH8XPxVU3Mk+7sXTRttcyjEWfWRMZlvSWdf/j0cj+t8KR2b8pnVgx2X0",
+	"Wtc7Su8Z0oJRt9ibdZv3FoN02V+ZvWndutS56atOpJ4CUEJWPOGilgRC/YQLURRgJ9LwiAdE/Cp8YyeX",
+	"c/YFhHKGrTtUEtVJHK+daaPtFsdoIYnAsrQyGpioax7xSqag0Ufb+TipRVoCO5xMN6xjEseLxWIi/PLE",
+	"2CLuzmJ8Pj89u7g6+3A4mU5KUpVzTmAVfs6vwN7LFMYgxn5L7PInqXJbfjEe38nlnEf8HiwG5AeT6WTq",
+	"bJoatKglT/hH/8mJmkqvgti1+LgyhdReIp2uN1Nw7pZ70pyGhFuYZ/0SD8QB0ieTLbe6oqjrSqb+RPwH",
+	"Gu8mFMbzre3FreLlxR00tRlramXm2jYZVq3FFsyQbcDbXZuSh9PpGyL2k3M/+rBtDG/gBhs/iIN6c9FU",
+	"9CJMzzWvMLBHPDcaHmpICTIG/Z426hSFstBNvVtSqQVBwDQsxnV1JQt9Xb9BWHv6se+JI0E5v6yp14Ht",
+	"o//gH8O1C9RFB4aFrGXvh+ZFaYSSznYBIyxboMZqljbWupoaZfqkofIL+DFTCysUEFj0I3XTlguHLeA2",
+	"XDa5mwWuO4LIvNGuCz98cLgGrEVrWdiutJs3FvRrGD1dz0gb8aOgojFTK2zx8D7eUeFKDHeS8JsnAZmo",
+	"Kj/PkeXWKD+HcYkE7l9Bq7nMSoFM9Pf6AV0/S51den97+EIglkuL5J26fhrU0DN314BdPhFn8hyBNojL",
+	"RYUbzO29hrgL1iYKJR6kahTTjboF6+4fFrCpCPcCqqSSb8bzVm1JAoX7RNbdLXvvwlqxHBNdIL/H8183",
+	"kYhjo5SwyzGJ+lfG6OA49S0QmfAt2ktL6iBmMhYmbNYE9G6PBWfSLCAbtp3My/jfmzCBlWEqLrtqEFnm",
+	"/qyQf9NJswucz+d7VMiQdv7U+uJHmbVBKhXQyBMkfHenUeqiCu8adisQMmaCeuYzho0La0QrM3/c5ezT",
+	"cj7b1/jmM9dm+qbXQep6jLt3P7UY/8LZPahe016OhsF7JAFG9p4ona1ICWws2Xzm8D0/xLaoWzHqeRkf",
+	"VS8nLQdKy2/G2fT/W9bbtAYN+D1g73uqNt7qlUlFVRqk5Hh6POXtTft3AAAA//+VlApcxRQAAA==",
 }
 
 // GetSwagger returns the Swagger specification corresponding to the generated code

@@ -64,7 +64,11 @@ paths:
           content:
             application/json: 
               schema:
-                $ref: '#/components/schemas/User'
+                properties:
+                  token:
+                    type: string
+                required:
+                  - token
         default:
           description: unexpected error
           content:
@@ -75,8 +79,8 @@ paths:
           
   /auth/whoami:
     get:
-      security:
-        - bearerAuth: []
+      # security:
+      #   - bearerAuth: []
       description: return current user
       operationId: authTest
       parameters:
@@ -244,10 +248,14 @@ components:
       properties:
         username:
           type: string
+          minLength: 1
+          maxLength: 15
           description: User name, Unique, cannot change
         password:
           type: string
           format: password
+          minLength: 8
+          maxLength: 20
           description: User password, at least 8 character
         password_confirm:
           type: string
@@ -273,8 +281,8 @@ components:
       description: Access token is missing or invalid
 
 
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
+  # securitySchemes:
+  #   bearerAuth:
+  #     type: http
+  #     scheme: bearer
+  #     bearerFormat: JWT
