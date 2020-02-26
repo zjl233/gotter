@@ -45,6 +45,13 @@ type Error struct {
 	Result bool   `json:"result"`
 }
 
+// RefreshParams defines parameters for Refresh.
+type RefreshParams struct {
+
+	// jwt auth
+	XAuth XAuth `json:"x-auth"`
+}
+
 // SignUpJSONBody defines parameters for SignUp.
 type SignUpJSONBody NewUser
 

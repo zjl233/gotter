@@ -22,7 +22,7 @@ import (
 )
 
 func main() {
-	var port = flag.Int("port", 8080, "Port for test HTTP server")
+	var port = flag.Int("port", 3001, "Port for test HTTP server")
 	flag.Parse()
 
 	swagger, err := api.GetSwagger()

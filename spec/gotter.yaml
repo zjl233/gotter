@@ -44,6 +44,32 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
+    get:
+      description: refresh jwt
+      operationId: refresh
+      parameters:
+        - $ref: "#/components/parameters/x-auth"
+      responses:
+        "200":
+          description: Current user and refresh jwt
+          headers:
+            x-auth:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: boolean
+                  user:
+                    $ref: '#/components/schemas/User'
+        default:
+          $ref: '#/components/responses/Error'
+
+  
+
   /API/user/login:
     post:
       description: Login user
@@ -82,10 +108,8 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
-  /API/user/info/:
+  /API/user/info:
     get:
-      # security:
-      #   - bearerAuth: []
       description: return current user
       operationId: info
       parameters:
@@ -104,6 +128,7 @@ paths:
                     $ref: '#/components/schemas/User'
         default:
           $ref: '#/components/responses/Error'
+  
 
 #  /posts:
 #    get:

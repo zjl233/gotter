@@ -34,7 +34,7 @@ import (
 )
 
 func ErrorRes(ctx echo.Context, code int, errmsg string, e error) error {
-	return ctx.JSON(code, api.Error{
+	return ctx.JSON(200, api.Error{
 		Result: false,
 		ErrMsg: errmsg,
 		Err: map[string]interface{}{
@@ -147,9 +147,9 @@ func (s *PostSrv) SetJWT(ctx echo.Context, c context.Context, u *ent.User) error
 
 func (s *PostSrv) Info(ctx echo.Context, params api.InfoParams) error {
 	// refactor: User by JWT
-	u, err := s.UserByJWT(ctx, params)
+	u, err := s.UserByJWT(ctx, params.XAuth)
 	if err != nil {
-		return err
+		return ErrorRes(ctx, http.StatusUnauthorized, "unauthorized", err)
 	}
 
 	return ctx.JSON(200, map[string]interface{}{
@@ -159,9 +159,9 @@ func (s *PostSrv) Info(ctx echo.Context, params api.InfoParams) error {
 
 }
 
-func (s *PostSrv) UserByJWT(ctx echo.Context, params api.InfoParams) (*ent.User, error) {
+func (s *PostSrv) UserByJWT(ctx echo.Context, xauth api.XAuth) (*ent.User, error) {
 	c := ctx.Request().Context()
-	a, err := s.db.AuthToken.Query().Where(authtoken.TokenEQ(string(params.XAuth))).Only(c)
+	a, err := s.db.AuthToken.Query().Where(authtoken.TokenEQ(string(xauth))).Only(c)
 	if err != nil {
 		return nil, err
 	}
@@ -172,6 +172,22 @@ func (s *PostSrv) UserByJWT(ctx echo.Context, params api.InfoParams) (*ent.User,
 		return nil, err
 	}
 	return u, nil
+}
+
+func (s *PostSrv) Refresh(ctx echo.Context, params api.RefreshParams) error {
+	// refactor: User by JWT
+	u, err := s.UserByJWT(ctx, params.XAuth)
+	if err != nil {
+		return ErrorRes(ctx, http.StatusUnauthorized, "unauthorized", err)
+	}
+
+	// we dont refresh jwt
+	ctx.Response().Header().Set("x-auth", string(params.XAuth))
+	return ctx.JSON(200, map[string]interface{}{
+		"result": true,
+		"user":   serializer.BuildUser(u), // refactor: BuildUser
+	})
+
 }
 
 //func (s *PostSrv) FindPosts(ctx echo.Context, params FindPostsParams) error {
