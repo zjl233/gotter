@@ -16,6 +16,7 @@ import (
 	"github.com/zjl233/gotter/api"
 	"github.com/zjl233/gotter/ent"
 	"github.com/zjl233/gotter/ent/migrate"
+	"github.com/zjl233/gotter/service"
 	"log"
 	"os"
 )
@@ -53,7 +54,7 @@ func main() {
 	// =================db==================
 
 	// Create an instance of our handler which satisfies the generated interface
-	petStore := api.NewPostSrv(client)
+	petStore := service.NewPostSrv(client)
 
 	// This is how you set up a basic Echo router
 	e := echo.New()

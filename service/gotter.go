@@ -12,17 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen --package=api --generate types -o gotter_types.gen.go ../spec/gotter.yaml
-//go:generate go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen --package=api --generate server,spec -o gotter_server.gen.go ../spec/gotter.yaml
+//go:generate go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen --package=api --generate types -o ../api/gotter_types.gen.go ../spec/gotter.yaml
+//go:generate go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen --package=api --generate server,spec -o ../api/gotter_server.gen.go ../spec/gotter.yaml
 
-package api
+package service
 
 import (
 	"errors"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
+	"github.com/zjl233/gotter/api"
 	"github.com/zjl233/gotter/ent"
+	"github.com/zjl233/gotter/ent/authtoken"
 	"github.com/zjl233/gotter/ent/user"
+	"github.com/zjl233/gotter/serializer"
 	"gopkg.in/hlandau/passlib.v1"
 	"time"
 
@@ -30,7 +33,7 @@ import (
 )
 
 func ErrorRes(ctx echo.Context, code int, errmsg string, e error) error {
-	return ctx.JSON(code, Error{
+	return ctx.JSON(code, api.Error{
 		Result: false,
 		ErrMsg: errmsg,
 		Err: map[string]interface{}{
@@ -40,7 +43,7 @@ func ErrorRes(ctx echo.Context, code int, errmsg string, e error) error {
 }
 
 func SuccessRes(ctx echo.Context, errmsg string, e error) error {
-	return ctx.JSON(200, Error{
+	return ctx.JSON(200, api.Error{
 		Result: false,
 		ErrMsg: errmsg,
 		Err: map[string]interface{}{
@@ -55,7 +58,7 @@ type PostSrv struct {
 
 func (s *PostSrv) Login(ctx echo.Context) error {
 	// Expect username and password from request body
-	var body LoginJSONBody
+	var body api.LoginJSONBody
 	if err := ctx.Bind(&body); err != nil {
 		return ErrorRes(ctx, http.StatusBadRequest, "body bind error", err)
 	}
@@ -63,10 +66,7 @@ func (s *PostSrv) Login(ctx echo.Context) error {
 	c := ctx.Request().Context()
 	// refactor: extract two step below to User.CheckPassword
 	// 1. Query user from db
-	u, err := s.db.User.
-		Query().
-		Where(user.AccountEQ(body.Account)).
-		Only(c)
+	u, err := s.db.User.Query().Where(user.AccountEQ(body.Account)).Only(c)
 	if err != nil {
 		return ErrorRes(ctx, http.StatusUnauthorized, "username or password error", err)
 	}
@@ -76,6 +76,7 @@ func (s *PostSrv) Login(ctx echo.Context) error {
 		return ErrorRes(ctx, http.StatusUnauthorized, "username or password error", err)
 	}
 
+	// refactor: jwt from user, method of *ent.AuthToken
 	// create token
 	token := jwt.New(jwt.SigningMethodHS256)
 
@@ -93,11 +94,7 @@ func (s *PostSrv) Login(ctx echo.Context) error {
 	}
 
 	// Save encoded token to db
-	_, err = s.db.AuthToken.
-		Create().
-		SetToken(t).
-		SetUser(u).
-		Save(c)
+	_, err = s.db.AuthToken.Create().SetToken(t).SetUser(u).Save(c)
 	if err != nil {
 		return ErrorRes(ctx, http.StatusInternalServerError, "db error", err)
 
@@ -106,21 +103,12 @@ func (s *PostSrv) Login(ctx echo.Context) error {
 	ctx.Response().Header().Set("x-auth", t)
 	return ctx.JSON(200, map[string]interface{}{
 		"result": true,
-		"user": User{
-			Id:         u.ID,
-			Account:    u.Account,
-			BkgWallImg: u.BkgWallImg,
-			Follower:   []int{},
-			Following:  []int{},
-			Name:       u.Name,
-			Posts:      []int{},
-			ProfileImg: u.ProfileImg,
-		},
+		"user":   serializer.BuildUser(u),
 	})
 }
 
 func (s *PostSrv) SignUp(ctx echo.Context) error {
-	var body SignUpJSONBody
+	var body api.SignUpJSONBody
 	if err := ctx.Bind(&body); err != nil {
 		return ErrorRes(ctx, http.StatusBadRequest, "body bind error", err)
 	}
@@ -130,9 +118,7 @@ func (s *PostSrv) SignUp(ctx echo.Context) error {
 
 	c := ctx.Request().Context()
 	// Check duplicated username
-	exist, _ := s.db.User.Query().
-		Where(user.Account(body.Account)).
-		Exist(c)
+	exist, _ := s.db.User.Query().Where(user.Account(body.Account)).Exist(c)
 	if exist {
 		return ErrorRes(ctx, http.StatusBadRequest, "username duplicated", errors.New("username duplicate"))
 	}
@@ -145,19 +131,18 @@ func (s *PostSrv) SignUp(ctx echo.Context) error {
 	}
 
 	// 2. Save new user to db
-	u, err := s.db.User.Create().
-		SetAccount(body.Account).
-		SetPasswordHash(hash).
-		SetName(body.Name).
-		Save(c)
+	u, err := s.db.User.Create().SetAccount(body.Account).SetPasswordHash(hash).SetName(body.Name).Save(c)
 	if err != nil {
 		return ErrorRes(ctx, http.StatusInternalServerError, "db error", err)
 	}
 
+	// GenJWT
+	// ctx set header
+
 	// Now, we have to serialize User
 	return ctx.JSON(200, map[string]interface{}{
 		"result": true,
-		"user": User{
+		"user": api.User{
 			Id:         u.ID,
 			Account:    u.Account,
 			BkgWallImg: u.BkgWallImg,
@@ -171,24 +156,53 @@ func (s *PostSrv) SignUp(ctx echo.Context) error {
 
 }
 
-func (s *PostSrv) AuthTest(ctx echo.Context, params AuthTestParams) error {
-	panic("not implement error")
-	//c := ctx.Request().Context()
-	//// Query token by x-auth header
-	//a, err := s.db.AuthToken.Query().Where(authtoken.TokenEQ(params)).Only(c)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//// Query user by token
-	//u, err := s.db.AuthToken.QueryUser(a).Only(c)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//return ctx.JSON(200, u)
+func (s *PostSrv) Info(ctx echo.Context, params api.InfoParams) error {
+	// refactor: User by JWT
+	c := ctx.Request().Context()
+	a, err := s.db.AuthToken.Query().Where(authtoken.TokenEQ(string(params.XAuth))).Only(c)
+	if err != nil {
+		return err
+	}
+
+	// Query user by token
+	u, err := s.db.AuthToken.QueryUser(a).Only(c)
+	if err != nil {
+		return err
+	}
+
+	return ctx.JSON(200, map[string]interface{}{
+		"result": true,
+		"user": api.User{
+			Id:         u.ID,
+			Account:    u.Account,
+			BkgWallImg: u.BkgWallImg,
+			Follower:   []int{},
+			Following:  []int{},
+			Name:       u.Name,
+			Posts:      []int{},
+			ProfileImg: u.ProfileImg,
+		}, // refactor: BuildUser
+	})
 
 }
+
+//func (s *PostSrv) AuthTest(ctx echo.Context, params AuthTestParams) error {
+//	c := ctx.Request().Context()
+//	// Query token by x-auth header
+//	a, err := s.db.AuthToken.Query().Where(authtoken.TokenEQ(params)).Only(c)
+//	if err != nil {
+//		return err
+//	}
+//
+//	// Query user by token
+//	u, err := s.db.AuthToken.QueryUser(a).Only(c)
+//	if err != nil {
+//		return err
+//	}
+//
+//	return ctx.JSON(200, u)
+//
+//}
 
 //func (s *PostSrv) FindPosts(ctx echo.Context, params FindPostsParams) error {
 //	panic("implement me")

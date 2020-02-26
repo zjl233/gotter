@@ -48,8 +48,8 @@ type Error struct {
 // SignUpJSONBody defines parameters for SignUp.
 type SignUpJSONBody NewUser
 
-// AuthTestParams defines parameters for AuthTest.
-type AuthTestParams struct {
+// InfoParams defines parameters for Info.
+type InfoParams struct {
 
 	// jwt auth
 	XAuth XAuth `json:"x-auth"`
