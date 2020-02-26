@@ -18,10 +18,10 @@
 package api
 
 import (
+	"errors"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	"github.com/zjl233/gotter/ent"
-	"github.com/zjl233/gotter/ent/authtoken"
 	"github.com/zjl233/gotter/ent/user"
 	"gopkg.in/hlandau/passlib.v1"
 	"time"
@@ -29,15 +29,24 @@ import (
 	"net/http"
 )
 
-// This function wraps sending of an error in the Error format, and
-// handling the failure to marshal that.
-func sendPetstoreError(ctx echo.Context, code int, message string) error {
-	petErr := Error{
-		Code:    int32(code),
-		Message: message,
-	}
-	err := ctx.JSON(code, petErr)
-	return err
+func ErrorRes(ctx echo.Context, code int, errmsg string, e error) error {
+	return ctx.JSON(code, Error{
+		Result: false,
+		ErrMsg: errmsg,
+		Err: map[string]interface{}{
+			"detail": e.Error(),
+		},
+	})
+}
+
+func SuccessRes(ctx echo.Context, errmsg string, e error) error {
+	return ctx.JSON(200, Error{
+		Result: false,
+		ErrMsg: errmsg,
+		Err: map[string]interface{}{
+			"detail": e.Error(),
+		},
+	})
 }
 
 type PostSrv struct {
@@ -45,23 +54,26 @@ type PostSrv struct {
 }
 
 func (s *PostSrv) Login(ctx echo.Context) error {
-	// Expect username and password in request body
-	var queryUser LoginJSONBody
-	if err := ctx.Bind(&queryUser); err != nil {
-		return sendPetstoreError(ctx, http.StatusBadRequest, "Invalid format for NewPet")
+	// Expect username and password from request body
+	var body LoginJSONBody
+	if err := ctx.Bind(&body); err != nil {
+		return ErrorRes(ctx, http.StatusBadRequest, "body bind error", err)
 	}
 
+	c := ctx.Request().Context()
 	// refactor: extract two step below to User.CheckPassword
 	// 1. Query user from db
-	u, err := s.db.User.Query().Where(user.UsernameEQ(queryUser.Username)).Only(ctx.Request().Context())
+	u, err := s.db.User.
+		Query().
+		Where(user.AccountEQ(body.Account)).
+		Only(c)
 	if err != nil {
-		return sendPetstoreError(ctx, http.StatusNotFound, "username or password error")
+		return ErrorRes(ctx, http.StatusUnauthorized, "username or password error", err)
 	}
 
 	// 2. Vertify query password and hashed password
-	err = passlib.VerifyNoUpgrade(queryUser.Password, u.PasswordHash)
-	if err != nil {
-		return sendPetstoreError(ctx, http.StatusNotFound, "username or password error")
+	if err = passlib.VerifyNoUpgrade(body.Password, u.PasswordHash); err != nil {
+		return ErrorRes(ctx, http.StatusUnauthorized, "username or password error", err)
 	}
 
 	// create token
@@ -69,126 +81,155 @@ func (s *PostSrv) Login(ctx echo.Context) error {
 
 	// Set claims
 	claims := token.Claims.(jwt.MapClaims)
-	claims["username"] = u.Username
-	claims["admin"] = true
+	claims["id"] = u.ID
+	claims["access"] = "auth"
 	claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
+	claims["iat"] = time.Now().Unix()
 
 	// Generate encoded token and send it as response.
 	t, err := token.SignedString([]byte("secret"))
 	if err != nil {
-		return err
+		return ErrorRes(ctx, http.StatusInternalServerError, "generate jwt error", err)
 	}
 
 	// Save encoded token to db
-	if _, err = s.db.AuthToken.Create().SetToken(t).SetUser(u).Save(ctx.Request().Context()); err != nil {
-		return err
+	_, err = s.db.AuthToken.
+		Create().
+		SetToken(t).
+		SetUser(u).
+		Save(c)
+	if err != nil {
+		return ErrorRes(ctx, http.StatusInternalServerError, "db error", err)
+
 	}
 
-	if err = ctx.JSON(http.StatusOK, t); err != nil {
-		return err
-	}
-
-	return nil
+	ctx.Response().Header().Set("x-auth", t)
+	return ctx.JSON(200, map[string]interface{}{
+		"result": true,
+		"user": User{
+			Id:         u.ID,
+			Account:    u.Account,
+			BkgWallImg: u.BkgWallImg,
+			Follower:   []int{},
+			Following:  []int{},
+			Name:       u.Name,
+			Posts:      []int{},
+			ProfileImg: u.ProfileImg,
+		},
+	})
 }
 
 func (s *PostSrv) SignUp(ctx echo.Context) error {
-	var newUser NewUser
-	if err := ctx.Bind(&newUser); err != nil {
-		return err
+	var body SignUpJSONBody
+	if err := ctx.Bind(&body); err != nil {
+		return ErrorRes(ctx, http.StatusBadRequest, "body bind error", err)
+	}
+	if body.Password != body.Password2 {
+		return ErrorRes(ctx, http.StatusBadRequest, "password not confirmed", errors.New(""))
 	}
 
+	c := ctx.Request().Context()
 	// Check duplicated username
-	exist, _ := s.db.User.Query().Where(user.UsernameEQ(newUser.Username)).Exist(ctx.Request().Context())
+	exist, _ := s.db.User.Query().
+		Where(user.Account(body.Account)).
+		Exist(c)
 	if exist {
-		return sendPetstoreError(ctx, http.StatusBadRequest, "username duplicated")
+		return ErrorRes(ctx, http.StatusBadRequest, "username duplicated", errors.New("username duplicate"))
 	}
 
 	// refactor: extract two step below to User.SetPassword
 	// 1. Hash password
-	hash, err := passlib.Hash(newUser.Password)
+	hash, err := passlib.Hash(body.Password)
 	if err != nil {
-		// couldn't hash password for some reason
-		return ctx.JSON(http.StatusInternalServerError, "Failed to Hash password")
+		return ErrorRes(ctx, http.StatusInternalServerError, "can not hash password", err)
 	}
 
 	// 2. Save new user to db
 	u, err := s.db.User.Create().
-		SetUsername(newUser.Username).
+		SetAccount(body.Account).
 		SetPasswordHash(hash).
-		Save(ctx.Request().Context())
+		SetName(body.Name).
+		Save(c)
 	if err != nil {
-		//return sendPetstoreError(ctx, http.StatusBadRequest, err.Error())
-		return err
+		return ErrorRes(ctx, http.StatusInternalServerError, "db error", err)
 	}
 
 	// Now, we have to serialize User
-	if err = ctx.JSON(http.StatusCreated, User{
-		Id:       int32(u.ID),
-		Username: u.Username,
-	}); err != nil {
-		return err
-	}
+	return ctx.JSON(200, map[string]interface{}{
+		"result": true,
+		"user": User{
+			Id:         u.ID,
+			Account:    u.Account,
+			BkgWallImg: u.BkgWallImg,
+			Follower:   []int{},
+			Following:  []int{},
+			Name:       u.Name,
+			Posts:      []int{},
+			ProfileImg: u.ProfileImg,
+		},
+	})
 
-	return nil
 }
 
 func (s *PostSrv) AuthTest(ctx echo.Context, params AuthTestParams) error {
-	// Query token by x-auth header
-	a, err := s.db.AuthToken.Query().Where(authtoken.TokenEQ(params.XAuth)).Only(ctx.Request().Context())
-	if err != nil {
-		return err
-	}
-
-	// Query user by token
-	u, err := s.db.AuthToken.QueryUser(a).Only(ctx.Request().Context())
-	if err != nil {
-		return err
-	}
-
-	return ctx.JSON(200, u)
+	panic("not implement error")
+	//c := ctx.Request().Context()
+	//// Query token by x-auth header
+	//a, err := s.db.AuthToken.Query().Where(authtoken.TokenEQ(params)).Only(c)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//// Query user by token
+	//u, err := s.db.AuthToken.QueryUser(a).Only(c)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//return ctx.JSON(200, u)
 
 }
 
-func (s *PostSrv) FindPosts(ctx echo.Context, params FindPostsParams) error {
-	panic("implement me")
-}
-
-func (s *PostSrv) AddPost(ctx echo.Context) error {
-	// We expect a NewPet object in the request body.
-	var newPost NewPost
-	if err := ctx.Bind(&newPost); err != nil {
-		return sendPetstoreError(ctx, http.StatusBadRequest, "Invalid format for NewPet")
-	}
-
-	// Save new post to db
-	post, err := s.db.Post.Create().
-		SetContent(newPost.Content).
-		Save(ctx.Request().Context())
-	if err != nil {
-		return err
-	}
-
-	// Now, we have to return the NewPet
-	if err = ctx.JSON(http.StatusCreated, post); err != nil {
-		return err
-	}
-
-	// Return no error. This refers to the handler. Even if we return an HTTP
-	// error, but everything else is working properly, tell Echo that we serviced
-	// the error. We should only return errors from Echo handlers if the actual
-	// servicing of the error on the infrastructure level failed. Returning an
-	// HTTP/400 or HTTP/500 from here means Echo/HTTP are still working, so
-	// return nil.
-	return nil
-}
-
-func (s *PostSrv) DeletePostByID(ctx echo.Context, id int32) error {
-	panic("implement me")
-}
-
-func (s *PostSrv) FindPostByID(ctx echo.Context, id int32) error {
-	panic("implement me")
-}
+//func (s *PostSrv) FindPosts(ctx echo.Context, params FindPostsParams) error {
+//	panic("implement me")
+//}
+//
+//func (s *PostSrv) AddPost(ctx echo.Context) error {
+//	// We expect a NewPet object in the request body.
+//	var newPost NewPost
+//	if err := ctx.Bind(&newPost); err != nil {
+//		return ErrorRes(ctx, http.StatusBadRequest, "Invalid format for NewPet")
+//	}
+//
+//	// Save new post to db
+//	post, err := s.db.Post.Create().
+//		SetContent(newPost.Content).
+//		Save(ctx.Request().Context())
+//	if err != nil {
+//		return err
+//	}
+//
+//	// Now, we have to return the NewPet
+//	if err = ctx.JSON(http.StatusCreated, post); err != nil {
+//		return err
+//	}
+//
+//	// Return no error. This refers to the handler. Even if we return an HTTP
+//	// error, but everything else is working properly, tell Echo that we serviced
+//	// the error. We should only return errors from Echo handlers if the actual
+//	// servicing of the error on the infrastructure level failed. Returning an
+//	// HTTP/400 or HTTP/500 from here means Echo/HTTP are still working, so
+//	// return nil.
+//	return nil
+//}
+//
+//func (s *PostSrv) DeletePostByID(ctx echo.Context, id int32) error {
+//	panic("implement me")
+//}
+//
+//func (s *PostSrv) FindPostByID(ctx echo.Context, id int32) error {
+//	panic("implement me")
+//}
 
 //type PetStore struct {
 //	Pets   map[int64]Pet
@@ -205,7 +246,7 @@ func NewPostSrv(client *ent.Client) *PostSrv {
 //
 //// This function wraps sending of an error in the Error format, and
 //// handling the failure to marshal that.
-//func sendPetstoreError(ctx echo.Context, code int, message string) error {
+//func ErrorRes(ctx echo.Context, code int, message string) error {
 //	petErr := Error{
 //		Code:    int32(code),
 //		Message: message,
@@ -250,7 +291,7 @@ func NewPostSrv(client *ent.Client) *PostSrv {
 //	var newPet NewPet
 //	err := ctx.Bind(&newPet)
 //	if err != nil {
-//		return sendPetstoreError(ctx, http.StatusBadRequest, "Invalid format for NewPet")
+//		return ErrorRes(ctx, http.StatusBadRequest, "Invalid format for NewPet")
 //	}
 //	// We now have a pet, let's add it to our "database".
 //
@@ -290,7 +331,7 @@ func NewPostSrv(client *ent.Client) *PostSrv {
 //
 //	pet, found := p.Pets[petId]
 //	if !found {
-//		return sendPetstoreError(ctx, http.StatusNotFound,
+//		return ErrorRes(ctx, http.StatusNotFound,
 //			fmt.Sprintf("Could not find pet with ID %d", petId))
 //	}
 //	return ctx.JSON(http.StatusOK, pet)
@@ -302,7 +343,7 @@ func NewPostSrv(client *ent.Client) *PostSrv {
 //
 //	_, found := p.Pets[id]
 //	if !found {
-//		return sendPetstoreError(ctx, http.StatusNotFound,
+//		return ErrorRes(ctx, http.StatusNotFound,
 //			fmt.Sprintf("Could not find pet with ID %d", id))
 //	}
 //	delete(p.Pets, id)

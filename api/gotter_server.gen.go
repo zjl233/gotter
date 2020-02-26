@@ -18,40 +18,19 @@ import (
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
-	// (POST /auth/login)
-	Login(ctx echo.Context) error
-
-	// (POST /auth/signup)
+	// (POST /API/user/)
 	SignUp(ctx echo.Context) error
 
-	// (GET /auth/whoami)
+	// (GET /API/user/info/)
 	AuthTest(ctx echo.Context, params AuthTestParams) error
-	// Returns all posts
-	// (GET /posts)
-	FindPosts(ctx echo.Context, params FindPostsParams) error
-	// Creates a new post
-	// (POST /posts)
-	AddPost(ctx echo.Context) error
-	// Deletes a post by ID
-	// (DELETE /posts/{id})
-	DeletePostByID(ctx echo.Context, id int32) error
-	// Returns a post by ID
-	// (GET /posts/{id})
-	FindPostByID(ctx echo.Context, id int32) error
+
+	// (POST /API/user/login)
+	Login(ctx echo.Context) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
-}
-
-// Login converts echo context to params.
-func (w *ServerInterfaceWrapper) Login(ctx echo.Context) error {
-	var err error
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.Login(ctx)
-	return err
 }
 
 // SignUp converts echo context to params.
@@ -73,7 +52,7 @@ func (w *ServerInterfaceWrapper) AuthTest(ctx echo.Context) error {
 	headers := ctx.Request().Header
 	// ------------- Required header parameter "x-auth" -------------
 	if valueList, found := headers[http.CanonicalHeaderKey("x-auth")]; found {
-		var XAuth string
+		var XAuth XAuth
 		n := len(valueList)
 		if n != 1 {
 			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for x-auth, got %d", n))
@@ -94,75 +73,12 @@ func (w *ServerInterfaceWrapper) AuthTest(ctx echo.Context) error {
 	return err
 }
 
-// FindPosts converts echo context to params.
-func (w *ServerInterfaceWrapper) FindPosts(ctx echo.Context) error {
-	var err error
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params FindPostsParams
-	// ------------- Optional query parameter "offset" -------------
-	if paramValue := ctx.QueryParam("offset"); paramValue != "" {
-
-	}
-
-	err = runtime.BindQueryParameter("form", true, false, "offset", ctx.QueryParams(), &params.Offset)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter offset: %s", err))
-	}
-
-	// ------------- Optional query parameter "limit" -------------
-	if paramValue := ctx.QueryParam("limit"); paramValue != "" {
-
-	}
-
-	err = runtime.BindQueryParameter("form", true, false, "limit", ctx.QueryParams(), &params.Limit)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter limit: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.FindPosts(ctx, params)
-	return err
-}
-
-// AddPost converts echo context to params.
-func (w *ServerInterfaceWrapper) AddPost(ctx echo.Context) error {
+// Login converts echo context to params.
+func (w *ServerInterfaceWrapper) Login(ctx echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.AddPost(ctx)
-	return err
-}
-
-// DeletePostByID converts echo context to params.
-func (w *ServerInterfaceWrapper) DeletePostByID(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "id" -------------
-	var id int32
-
-	err = runtime.BindStyledParameter("simple", false, "id", ctx.Param("id"), &id)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.DeletePostByID(ctx, id)
-	return err
-}
-
-// FindPostByID converts echo context to params.
-func (w *ServerInterfaceWrapper) FindPostByID(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "id" -------------
-	var id int32
-
-	err = runtime.BindStyledParameter("simple", false, "id", ctx.Param("id"), &id)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.FindPostByID(ctx, id)
+	err = w.Handler.Login(ctx)
 	return err
 }
 
@@ -183,40 +99,31 @@ func RegisterHandlers(router interface {
 		Handler: si,
 	}
 
-	router.POST("/auth/login", wrapper.Login)
-	router.POST("/auth/signup", wrapper.SignUp)
-	router.GET("/auth/whoami", wrapper.AuthTest)
-	router.GET("/posts", wrapper.FindPosts)
-	router.POST("/posts", wrapper.AddPost)
-	router.DELETE("/posts/:id", wrapper.DeletePostByID)
-	router.GET("/posts/:id", wrapper.FindPostByID)
+	router.POST("/API/user/", wrapper.SignUp)
+	router.GET("/API/user/info/", wrapper.AuthTest)
+	router.POST("/API/user/login", wrapper.Login)
 
 }
 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the Swagger specification corresponding to the generated code
