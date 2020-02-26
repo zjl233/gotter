@@ -16,7 +16,7 @@ import (
 	"github.com/zjl233/gotter/api"
 	"github.com/zjl233/gotter/ent"
 	"github.com/zjl233/gotter/ent/migrate"
-	"github.com/zjl233/gotter/service"
+	"github.com/zjl233/gotter/srv"
 	"log"
 	"os"
 )
@@ -27,7 +27,7 @@ func main() {
 
 	swagger, err := api.GetSwagger()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading swagger spec\n: %s", err)
+		_, _ = fmt.Fprintf(os.Stderr, "Error loading swagger spec\n: %s", err)
 		os.Exit(1)
 	}
 
@@ -54,7 +54,7 @@ func main() {
 	// =================db==================
 
 	// Create an instance of our handler which satisfies the generated interface
-	petStore := service.NewPostSrv(client)
+	petStore := srv.NewPostSrv(client)
 
 	// This is how you set up a basic Echo router
 	e := echo.New()

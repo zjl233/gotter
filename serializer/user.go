@@ -5,6 +5,7 @@ import (
 	"github.com/zjl233/gotter/ent"
 )
 
+// User serializer
 func BuildUser(u *ent.User) api.User {
 	return api.User{
 		Id:         u.ID,
