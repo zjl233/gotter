@@ -15,6 +15,6 @@ func BuildUser(u *ent.User) api.User {
 		Following:  []int{},
 		Name:       u.Name,
 		Posts:      []int{},
-		ProfileImg: u.Name,
+		ProfileImg: u.ProfileImg,
 	}
 }
