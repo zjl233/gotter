@@ -69,11 +69,11 @@ func (s *PostSrv) SignUp(ctx echo.Context) error {
 		return ErrorRes(ctx, http.StatusInternalServerError, "db error", err)
 	}
 
+	// Set jwt response Header
 	if err = s.SetJWT(ctx, c, u); err != nil {
 		return ErrorRes(ctx, http.StatusInternalServerError, "Encode jwt error or db error", err)
 	}
 
-	// Now, we have to serialize User
 	return ctx.JSON(200, map[string]interface{}{
 		"result": true,
 		"user":   serializer.BuildUser(u),
@@ -88,17 +88,16 @@ func (s *PostSrv) Refresh(ctx echo.Context, params api.RefreshParams) error {
 		return ErrorRes(ctx, http.StatusUnauthorized, "unauthorized", err)
 	}
 
-	// we dont refresh jwt
+	// we dont refresh jwt now
 	ctx.Response().Header().Set("x-auth", string(params.XAuth))
 	return ctx.JSON(200, map[string]interface{}{
 		"result": true,
-		"user":   serializer.BuildUser(u), // refactor: BuildUser
+		"user":   serializer.BuildUser(u),
 	})
 
 }
 
 func (s *PostSrv) Info(ctx echo.Context, params api.InfoParams) error {
-	// refactor: User by JWT
 	u, err := s.UserByJWT(ctx, params.XAuth)
 	if err != nil {
 		return ErrorRes(ctx, http.StatusUnauthorized, "unauthorized", err)
@@ -106,7 +105,7 @@ func (s *PostSrv) Info(ctx echo.Context, params api.InfoParams) error {
 
 	return ctx.JSON(200, map[string]interface{}{
 		"result": true,
-		"user":   serializer.BuildUser(u), // refactor: BuildUser
+		"user":   serializer.BuildUser(u),
 	})
 
 }
