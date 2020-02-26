@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math"
@@ -11,8 +12,10 @@ import (
 	"github.com/facebookincubator/ent/dialect/sql"
 	"github.com/facebookincubator/ent/dialect/sql/sqlgraph"
 	"github.com/facebookincubator/ent/schema/field"
+	"github.com/zjl233/gotter/ent/comment"
 	"github.com/zjl233/gotter/ent/post"
 	"github.com/zjl233/gotter/ent/predicate"
+	"github.com/zjl233/gotter/ent/user"
 )
 
 // PostQuery is the builder for querying Post entities.
@@ -23,6 +26,11 @@ type PostQuery struct {
 	order      []Order
 	unique     []string
 	predicates []predicate.Post
+	// eager-loading edges.
+	withAuthor   *UserQuery
+	withComments *CommentQuery
+	withLikes    *UserQuery
+	withFKs      bool
 	// intermediate query.
 	sql *sql.Selector
 }
@@ -49,6 +57,42 @@ func (pq *PostQuery) Offset(offset int) *PostQuery {
 func (pq *PostQuery) Order(o ...Order) *PostQuery {
 	pq.order = append(pq.order, o...)
 	return pq
+}
+
+// QueryAuthor chains the current query on the author edge.
+func (pq *PostQuery) QueryAuthor() *UserQuery {
+	query := &UserQuery{config: pq.config}
+	step := sqlgraph.NewStep(
+		sqlgraph.From(post.Table, post.FieldID, pq.sqlQuery()),
+		sqlgraph.To(user.Table, user.FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, post.AuthorTable, post.AuthorColumn),
+	)
+	query.sql = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+	return query
+}
+
+// QueryComments chains the current query on the comments edge.
+func (pq *PostQuery) QueryComments() *CommentQuery {
+	query := &CommentQuery{config: pq.config}
+	step := sqlgraph.NewStep(
+		sqlgraph.From(post.Table, post.FieldID, pq.sqlQuery()),
+		sqlgraph.To(comment.Table, comment.FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, post.CommentsTable, post.CommentsColumn),
+	)
+	query.sql = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+	return query
+}
+
+// QueryLikes chains the current query on the likes edge.
+func (pq *PostQuery) QueryLikes() *UserQuery {
+	query := &UserQuery{config: pq.config}
+	step := sqlgraph.NewStep(
+		sqlgraph.From(post.Table, post.FieldID, pq.sqlQuery()),
+		sqlgraph.To(user.Table, user.FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, post.LikesTable, post.LikesColumn),
+	)
+	query.sql = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+	return query
 }
 
 // First returns the first Post entity in the query. Returns *NotFoundError when no post was found.
@@ -220,6 +264,39 @@ func (pq *PostQuery) Clone() *PostQuery {
 	}
 }
 
+//  WithAuthor tells the query-builder to eager-loads the nodes that are connected to
+// the "author" edge. The optional arguments used to configure the query builder of the edge.
+func (pq *PostQuery) WithAuthor(opts ...func(*UserQuery)) *PostQuery {
+	query := &UserQuery{config: pq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withAuthor = query
+	return pq
+}
+
+//  WithComments tells the query-builder to eager-loads the nodes that are connected to
+// the "comments" edge. The optional arguments used to configure the query builder of the edge.
+func (pq *PostQuery) WithComments(opts ...func(*CommentQuery)) *PostQuery {
+	query := &CommentQuery{config: pq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withComments = query
+	return pq
+}
+
+//  WithLikes tells the query-builder to eager-loads the nodes that are connected to
+// the "likes" edge. The optional arguments used to configure the query builder of the edge.
+func (pq *PostQuery) WithLikes(opts ...func(*UserQuery)) *PostQuery {
+	query := &UserQuery{config: pq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withLikes = query
+	return pq
+}
+
 // GroupBy used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
@@ -263,13 +340,28 @@ func (pq *PostQuery) Select(field string, fields ...string) *PostSelect {
 
 func (pq *PostQuery) sqlAll(ctx context.Context) ([]*Post, error) {
 	var (
-		nodes = []*Post{}
-		_spec = pq.querySpec()
+		nodes       = []*Post{}
+		withFKs     = pq.withFKs
+		_spec       = pq.querySpec()
+		loadedTypes = [3]bool{
+			pq.withAuthor != nil,
+			pq.withComments != nil,
+			pq.withLikes != nil,
+		}
 	)
+	if pq.withAuthor != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, post.ForeignKeys...)
+	}
 	_spec.ScanValues = func() []interface{} {
 		node := &Post{config: pq.config}
 		nodes = append(nodes, node)
 		values := node.scanValues()
+		if withFKs {
+			values = append(values, node.fkValues()...)
+		}
 		return values
 	}
 	_spec.Assign = func(values ...interface{}) error {
@@ -277,6 +369,7 @@ func (pq *PostQuery) sqlAll(ctx context.Context) ([]*Post, error) {
 			return fmt.Errorf("ent: Assign called without calling ScanValues")
 		}
 		node := nodes[len(nodes)-1]
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(values...)
 	}
 	if err := sqlgraph.QueryNodes(ctx, pq.driver, _spec); err != nil {
@@ -285,6 +378,88 @@ func (pq *PostQuery) sqlAll(ctx context.Context) ([]*Post, error) {
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+
+	if query := pq.withAuthor; query != nil {
+		ids := make([]int, 0, len(nodes))
+		nodeids := make(map[int][]*Post)
+		for i := range nodes {
+			if fk := nodes[i].user_posts; fk != nil {
+				ids = append(ids, *fk)
+				nodeids[*fk] = append(nodeids[*fk], nodes[i])
+			}
+		}
+		query.Where(user.IDIn(ids...))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			nodes, ok := nodeids[n.ID]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "user_posts" returned %v`, n.ID)
+			}
+			for i := range nodes {
+				nodes[i].Edges.Author = n
+			}
+		}
+	}
+
+	if query := pq.withComments; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[int]*Post)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+		}
+		query.withFKs = true
+		query.Where(predicate.Comment(func(s *sql.Selector) {
+			s.Where(sql.InValues(post.CommentsColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.post_comments
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "post_comments" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "post_comments" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.Comments = append(node.Edges.Comments, n)
+		}
+	}
+
+	if query := pq.withLikes; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[int]*Post)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+		}
+		query.withFKs = true
+		query.Where(predicate.User(func(s *sql.Selector) {
+			s.Where(sql.InValues(post.LikesColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.post_likes
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "post_likes" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "post_likes" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.Likes = append(node.Edges.Likes, n)
+		}
+	}
+
 	return nodes, nil
 }
 

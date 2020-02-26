@@ -29,6 +29,9 @@ func (AuthToken) Fields() []ent.Field {
 // Edges of the AuthToken.
 func (AuthToken) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("user", User.Type).Ref("tokens").Required().Unique(),
+		edge.From("user", User.Type).
+			Ref("tokens").
+			Required().
+			Unique(),
 	}
 }

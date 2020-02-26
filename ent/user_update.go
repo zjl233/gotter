@@ -4,12 +4,15 @@ package ent
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/facebookincubator/ent/dialect/sql"
 	"github.com/facebookincubator/ent/dialect/sql/sqlgraph"
 	"github.com/facebookincubator/ent/schema/field"
 	"github.com/zjl233/gotter/ent/authtoken"
+	"github.com/zjl233/gotter/ent/comment"
+	"github.com/zjl233/gotter/ent/post"
 	"github.com/zjl233/gotter/ent/predicate"
 	"github.com/zjl233/gotter/ent/user"
 )
@@ -20,10 +23,21 @@ type UserUpdate struct {
 
 	updated_at *time.Time
 
-	password_hash *string
-	tokens        map[int]struct{}
-	removedTokens map[int]struct{}
-	predicates    []predicate.User
+	password_hash    *string
+	name             *string
+	profile_img      *string
+	bkg_wall_img     *string
+	tokens           map[int]struct{}
+	posts            map[int]struct{}
+	comments         map[int]struct{}
+	followers        map[int]struct{}
+	following        map[int]struct{}
+	removedTokens    map[int]struct{}
+	removedPosts     map[int]struct{}
+	removedComments  map[int]struct{}
+	removedFollowers map[int]struct{}
+	removedFollowing map[int]struct{}
+	predicates       []predicate.User
 }
 
 // Where adds a new predicate for the builder.
@@ -41,6 +55,40 @@ func (uu *UserUpdate) SetUpdatedAt(t time.Time) *UserUpdate {
 // SetPasswordHash sets the password_hash field.
 func (uu *UserUpdate) SetPasswordHash(s string) *UserUpdate {
 	uu.password_hash = &s
+	return uu
+}
+
+// SetName sets the name field.
+func (uu *UserUpdate) SetName(s string) *UserUpdate {
+	uu.name = &s
+	return uu
+}
+
+// SetProfileImg sets the profile_img field.
+func (uu *UserUpdate) SetProfileImg(s string) *UserUpdate {
+	uu.profile_img = &s
+	return uu
+}
+
+// SetNillableProfileImg sets the profile_img field if the given value is not nil.
+func (uu *UserUpdate) SetNillableProfileImg(s *string) *UserUpdate {
+	if s != nil {
+		uu.SetProfileImg(*s)
+	}
+	return uu
+}
+
+// SetBkgWallImg sets the bkg_wall_img field.
+func (uu *UserUpdate) SetBkgWallImg(s string) *UserUpdate {
+	uu.bkg_wall_img = &s
+	return uu
+}
+
+// SetNillableBkgWallImg sets the bkg_wall_img field if the given value is not nil.
+func (uu *UserUpdate) SetNillableBkgWallImg(s *string) *UserUpdate {
+	if s != nil {
+		uu.SetBkgWallImg(*s)
+	}
 	return uu
 }
 
@@ -64,6 +112,86 @@ func (uu *UserUpdate) AddTokens(a ...*AuthToken) *UserUpdate {
 	return uu.AddTokenIDs(ids...)
 }
 
+// AddPostIDs adds the posts edge to Post by ids.
+func (uu *UserUpdate) AddPostIDs(ids ...int) *UserUpdate {
+	if uu.posts == nil {
+		uu.posts = make(map[int]struct{})
+	}
+	for i := range ids {
+		uu.posts[ids[i]] = struct{}{}
+	}
+	return uu
+}
+
+// AddPosts adds the posts edges to Post.
+func (uu *UserUpdate) AddPosts(p ...*Post) *UserUpdate {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return uu.AddPostIDs(ids...)
+}
+
+// AddCommentIDs adds the comments edge to Comment by ids.
+func (uu *UserUpdate) AddCommentIDs(ids ...int) *UserUpdate {
+	if uu.comments == nil {
+		uu.comments = make(map[int]struct{})
+	}
+	for i := range ids {
+		uu.comments[ids[i]] = struct{}{}
+	}
+	return uu
+}
+
+// AddComments adds the comments edges to Comment.
+func (uu *UserUpdate) AddComments(c ...*Comment) *UserUpdate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uu.AddCommentIDs(ids...)
+}
+
+// AddFollowerIDs adds the followers edge to User by ids.
+func (uu *UserUpdate) AddFollowerIDs(ids ...int) *UserUpdate {
+	if uu.followers == nil {
+		uu.followers = make(map[int]struct{})
+	}
+	for i := range ids {
+		uu.followers[ids[i]] = struct{}{}
+	}
+	return uu
+}
+
+// AddFollowers adds the followers edges to User.
+func (uu *UserUpdate) AddFollowers(u ...*User) *UserUpdate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uu.AddFollowerIDs(ids...)
+}
+
+// AddFollowingIDs adds the following edge to User by ids.
+func (uu *UserUpdate) AddFollowingIDs(ids ...int) *UserUpdate {
+	if uu.following == nil {
+		uu.following = make(map[int]struct{})
+	}
+	for i := range ids {
+		uu.following[ids[i]] = struct{}{}
+	}
+	return uu
+}
+
+// AddFollowing adds the following edges to User.
+func (uu *UserUpdate) AddFollowing(u ...*User) *UserUpdate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uu.AddFollowingIDs(ids...)
+}
+
 // RemoveTokenIDs removes the tokens edge to AuthToken by ids.
 func (uu *UserUpdate) RemoveTokenIDs(ids ...int) *UserUpdate {
 	if uu.removedTokens == nil {
@@ -84,11 +212,96 @@ func (uu *UserUpdate) RemoveTokens(a ...*AuthToken) *UserUpdate {
 	return uu.RemoveTokenIDs(ids...)
 }
 
+// RemovePostIDs removes the posts edge to Post by ids.
+func (uu *UserUpdate) RemovePostIDs(ids ...int) *UserUpdate {
+	if uu.removedPosts == nil {
+		uu.removedPosts = make(map[int]struct{})
+	}
+	for i := range ids {
+		uu.removedPosts[ids[i]] = struct{}{}
+	}
+	return uu
+}
+
+// RemovePosts removes posts edges to Post.
+func (uu *UserUpdate) RemovePosts(p ...*Post) *UserUpdate {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return uu.RemovePostIDs(ids...)
+}
+
+// RemoveCommentIDs removes the comments edge to Comment by ids.
+func (uu *UserUpdate) RemoveCommentIDs(ids ...int) *UserUpdate {
+	if uu.removedComments == nil {
+		uu.removedComments = make(map[int]struct{})
+	}
+	for i := range ids {
+		uu.removedComments[ids[i]] = struct{}{}
+	}
+	return uu
+}
+
+// RemoveComments removes comments edges to Comment.
+func (uu *UserUpdate) RemoveComments(c ...*Comment) *UserUpdate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uu.RemoveCommentIDs(ids...)
+}
+
+// RemoveFollowerIDs removes the followers edge to User by ids.
+func (uu *UserUpdate) RemoveFollowerIDs(ids ...int) *UserUpdate {
+	if uu.removedFollowers == nil {
+		uu.removedFollowers = make(map[int]struct{})
+	}
+	for i := range ids {
+		uu.removedFollowers[ids[i]] = struct{}{}
+	}
+	return uu
+}
+
+// RemoveFollowers removes followers edges to User.
+func (uu *UserUpdate) RemoveFollowers(u ...*User) *UserUpdate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uu.RemoveFollowerIDs(ids...)
+}
+
+// RemoveFollowingIDs removes the following edge to User by ids.
+func (uu *UserUpdate) RemoveFollowingIDs(ids ...int) *UserUpdate {
+	if uu.removedFollowing == nil {
+		uu.removedFollowing = make(map[int]struct{})
+	}
+	for i := range ids {
+		uu.removedFollowing[ids[i]] = struct{}{}
+	}
+	return uu
+}
+
+// RemoveFollowing removes following edges to User.
+func (uu *UserUpdate) RemoveFollowing(u ...*User) *UserUpdate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uu.RemoveFollowingIDs(ids...)
+}
+
 // Save executes the query and returns the number of rows/vertices matched by this operation.
 func (uu *UserUpdate) Save(ctx context.Context) (int, error) {
 	if uu.updated_at == nil {
 		v := user.UpdateDefaultUpdatedAt()
 		uu.updated_at = &v
+	}
+	if uu.name != nil {
+		if err := user.NameValidator(*uu.name); err != nil {
+			return 0, fmt.Errorf("ent: validator failed for field \"name\": %v", err)
+		}
 	}
 	return uu.sqlSave(ctx)
 }
@@ -147,6 +360,27 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: user.FieldPasswordHash,
 		})
 	}
+	if value := uu.name; value != nil {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  *value,
+			Column: user.FieldName,
+		})
+	}
+	if value := uu.profile_img; value != nil {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  *value,
+			Column: user.FieldProfileImg,
+		})
+	}
+	if value := uu.bkg_wall_img; value != nil {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  *value,
+			Column: user.FieldBkgWallImg,
+		})
+	}
 	if nodes := uu.removedTokens; len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -185,6 +419,158 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if nodes := uu.removedPosts; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PostsTable,
+			Columns: []string{user.PostsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: post.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.posts; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PostsTable,
+			Columns: []string{user.PostsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: post.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if nodes := uu.removedComments; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CommentsTable,
+			Columns: []string{user.CommentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: comment.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.comments; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CommentsTable,
+			Columns: []string{user.CommentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: comment.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if nodes := uu.removedFollowers; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   user.FollowersTable,
+			Columns: user.FollowersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.followers; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   user.FollowersTable,
+			Columns: user.FollowersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if nodes := uu.removedFollowing; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.FollowingTable,
+			Columns: user.FollowingPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.following; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.FollowingTable,
+			Columns: user.FollowingPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if cerr, ok := isSQLConstraintError(err); ok {
 			err = cerr
@@ -201,9 +587,20 @@ type UserUpdateOne struct {
 
 	updated_at *time.Time
 
-	password_hash *string
-	tokens        map[int]struct{}
-	removedTokens map[int]struct{}
+	password_hash    *string
+	name             *string
+	profile_img      *string
+	bkg_wall_img     *string
+	tokens           map[int]struct{}
+	posts            map[int]struct{}
+	comments         map[int]struct{}
+	followers        map[int]struct{}
+	following        map[int]struct{}
+	removedTokens    map[int]struct{}
+	removedPosts     map[int]struct{}
+	removedComments  map[int]struct{}
+	removedFollowers map[int]struct{}
+	removedFollowing map[int]struct{}
 }
 
 // SetUpdatedAt sets the updated_at field.
@@ -215,6 +612,40 @@ func (uuo *UserUpdateOne) SetUpdatedAt(t time.Time) *UserUpdateOne {
 // SetPasswordHash sets the password_hash field.
 func (uuo *UserUpdateOne) SetPasswordHash(s string) *UserUpdateOne {
 	uuo.password_hash = &s
+	return uuo
+}
+
+// SetName sets the name field.
+func (uuo *UserUpdateOne) SetName(s string) *UserUpdateOne {
+	uuo.name = &s
+	return uuo
+}
+
+// SetProfileImg sets the profile_img field.
+func (uuo *UserUpdateOne) SetProfileImg(s string) *UserUpdateOne {
+	uuo.profile_img = &s
+	return uuo
+}
+
+// SetNillableProfileImg sets the profile_img field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableProfileImg(s *string) *UserUpdateOne {
+	if s != nil {
+		uuo.SetProfileImg(*s)
+	}
+	return uuo
+}
+
+// SetBkgWallImg sets the bkg_wall_img field.
+func (uuo *UserUpdateOne) SetBkgWallImg(s string) *UserUpdateOne {
+	uuo.bkg_wall_img = &s
+	return uuo
+}
+
+// SetNillableBkgWallImg sets the bkg_wall_img field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableBkgWallImg(s *string) *UserUpdateOne {
+	if s != nil {
+		uuo.SetBkgWallImg(*s)
+	}
 	return uuo
 }
 
@@ -238,6 +669,86 @@ func (uuo *UserUpdateOne) AddTokens(a ...*AuthToken) *UserUpdateOne {
 	return uuo.AddTokenIDs(ids...)
 }
 
+// AddPostIDs adds the posts edge to Post by ids.
+func (uuo *UserUpdateOne) AddPostIDs(ids ...int) *UserUpdateOne {
+	if uuo.posts == nil {
+		uuo.posts = make(map[int]struct{})
+	}
+	for i := range ids {
+		uuo.posts[ids[i]] = struct{}{}
+	}
+	return uuo
+}
+
+// AddPosts adds the posts edges to Post.
+func (uuo *UserUpdateOne) AddPosts(p ...*Post) *UserUpdateOne {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return uuo.AddPostIDs(ids...)
+}
+
+// AddCommentIDs adds the comments edge to Comment by ids.
+func (uuo *UserUpdateOne) AddCommentIDs(ids ...int) *UserUpdateOne {
+	if uuo.comments == nil {
+		uuo.comments = make(map[int]struct{})
+	}
+	for i := range ids {
+		uuo.comments[ids[i]] = struct{}{}
+	}
+	return uuo
+}
+
+// AddComments adds the comments edges to Comment.
+func (uuo *UserUpdateOne) AddComments(c ...*Comment) *UserUpdateOne {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uuo.AddCommentIDs(ids...)
+}
+
+// AddFollowerIDs adds the followers edge to User by ids.
+func (uuo *UserUpdateOne) AddFollowerIDs(ids ...int) *UserUpdateOne {
+	if uuo.followers == nil {
+		uuo.followers = make(map[int]struct{})
+	}
+	for i := range ids {
+		uuo.followers[ids[i]] = struct{}{}
+	}
+	return uuo
+}
+
+// AddFollowers adds the followers edges to User.
+func (uuo *UserUpdateOne) AddFollowers(u ...*User) *UserUpdateOne {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uuo.AddFollowerIDs(ids...)
+}
+
+// AddFollowingIDs adds the following edge to User by ids.
+func (uuo *UserUpdateOne) AddFollowingIDs(ids ...int) *UserUpdateOne {
+	if uuo.following == nil {
+		uuo.following = make(map[int]struct{})
+	}
+	for i := range ids {
+		uuo.following[ids[i]] = struct{}{}
+	}
+	return uuo
+}
+
+// AddFollowing adds the following edges to User.
+func (uuo *UserUpdateOne) AddFollowing(u ...*User) *UserUpdateOne {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uuo.AddFollowingIDs(ids...)
+}
+
 // RemoveTokenIDs removes the tokens edge to AuthToken by ids.
 func (uuo *UserUpdateOne) RemoveTokenIDs(ids ...int) *UserUpdateOne {
 	if uuo.removedTokens == nil {
@@ -258,11 +769,96 @@ func (uuo *UserUpdateOne) RemoveTokens(a ...*AuthToken) *UserUpdateOne {
 	return uuo.RemoveTokenIDs(ids...)
 }
 
+// RemovePostIDs removes the posts edge to Post by ids.
+func (uuo *UserUpdateOne) RemovePostIDs(ids ...int) *UserUpdateOne {
+	if uuo.removedPosts == nil {
+		uuo.removedPosts = make(map[int]struct{})
+	}
+	for i := range ids {
+		uuo.removedPosts[ids[i]] = struct{}{}
+	}
+	return uuo
+}
+
+// RemovePosts removes posts edges to Post.
+func (uuo *UserUpdateOne) RemovePosts(p ...*Post) *UserUpdateOne {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return uuo.RemovePostIDs(ids...)
+}
+
+// RemoveCommentIDs removes the comments edge to Comment by ids.
+func (uuo *UserUpdateOne) RemoveCommentIDs(ids ...int) *UserUpdateOne {
+	if uuo.removedComments == nil {
+		uuo.removedComments = make(map[int]struct{})
+	}
+	for i := range ids {
+		uuo.removedComments[ids[i]] = struct{}{}
+	}
+	return uuo
+}
+
+// RemoveComments removes comments edges to Comment.
+func (uuo *UserUpdateOne) RemoveComments(c ...*Comment) *UserUpdateOne {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uuo.RemoveCommentIDs(ids...)
+}
+
+// RemoveFollowerIDs removes the followers edge to User by ids.
+func (uuo *UserUpdateOne) RemoveFollowerIDs(ids ...int) *UserUpdateOne {
+	if uuo.removedFollowers == nil {
+		uuo.removedFollowers = make(map[int]struct{})
+	}
+	for i := range ids {
+		uuo.removedFollowers[ids[i]] = struct{}{}
+	}
+	return uuo
+}
+
+// RemoveFollowers removes followers edges to User.
+func (uuo *UserUpdateOne) RemoveFollowers(u ...*User) *UserUpdateOne {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uuo.RemoveFollowerIDs(ids...)
+}
+
+// RemoveFollowingIDs removes the following edge to User by ids.
+func (uuo *UserUpdateOne) RemoveFollowingIDs(ids ...int) *UserUpdateOne {
+	if uuo.removedFollowing == nil {
+		uuo.removedFollowing = make(map[int]struct{})
+	}
+	for i := range ids {
+		uuo.removedFollowing[ids[i]] = struct{}{}
+	}
+	return uuo
+}
+
+// RemoveFollowing removes following edges to User.
+func (uuo *UserUpdateOne) RemoveFollowing(u ...*User) *UserUpdateOne {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uuo.RemoveFollowingIDs(ids...)
+}
+
 // Save executes the query and returns the updated entity.
 func (uuo *UserUpdateOne) Save(ctx context.Context) (*User, error) {
 	if uuo.updated_at == nil {
 		v := user.UpdateDefaultUpdatedAt()
 		uuo.updated_at = &v
+	}
+	if uuo.name != nil {
+		if err := user.NameValidator(*uuo.name); err != nil {
+			return nil, fmt.Errorf("ent: validator failed for field \"name\": %v", err)
+		}
 	}
 	return uuo.sqlSave(ctx)
 }
@@ -315,6 +911,27 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (u *User, err error) {
 			Column: user.FieldPasswordHash,
 		})
 	}
+	if value := uuo.name; value != nil {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  *value,
+			Column: user.FieldName,
+		})
+	}
+	if value := uuo.profile_img; value != nil {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  *value,
+			Column: user.FieldProfileImg,
+		})
+	}
+	if value := uuo.bkg_wall_img; value != nil {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  *value,
+			Column: user.FieldBkgWallImg,
+		})
+	}
 	if nodes := uuo.removedTokens; len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -345,6 +962,158 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (u *User, err error) {
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeInt,
 					Column: authtoken.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if nodes := uuo.removedPosts; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PostsTable,
+			Columns: []string{user.PostsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: post.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.posts; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PostsTable,
+			Columns: []string{user.PostsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: post.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if nodes := uuo.removedComments; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CommentsTable,
+			Columns: []string{user.CommentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: comment.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.comments; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CommentsTable,
+			Columns: []string{user.CommentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: comment.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if nodes := uuo.removedFollowers; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   user.FollowersTable,
+			Columns: user.FollowersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.followers; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   user.FollowersTable,
+			Columns: user.FollowersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if nodes := uuo.removedFollowing; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.FollowingTable,
+			Columns: user.FollowingPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.following; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.FollowingTable,
+			Columns: user.FollowingPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
 				},
 			},
 		}

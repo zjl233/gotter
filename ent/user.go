@@ -20,22 +20,37 @@ type User struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// Username holds the value of the "username" field.
-	Username string `json:"username,omitempty"`
+	// Account holds the value of the "account" field.
+	Account string `json:"account,omitempty"`
 	// PasswordHash holds the value of the "password_hash" field.
 	PasswordHash string `json:"-"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
+	// ProfileImg holds the value of the "profile_img" field.
+	ProfileImg string `json:"profile_img,omitempty"`
+	// BkgWallImg holds the value of the "bkg_wall_img" field.
+	BkgWallImg string `json:"bkg_wall_img,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the UserQuery when eager-loading is set.
-	Edges UserEdges `json:"edges"`
+	Edges      UserEdges `json:"edges"`
+	post_likes *int
 }
 
 // UserEdges holds the relations/edges for other nodes in the graph.
 type UserEdges struct {
 	// Tokens holds the value of the tokens edge.
 	Tokens []*AuthToken
+	// Posts holds the value of the posts edge.
+	Posts []*Post
+	// Comments holds the value of the comments edge.
+	Comments []*Comment
+	// Followers holds the value of the followers edge.
+	Followers []*User
+	// Following holds the value of the following edge.
+	Following []*User
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [5]bool
 }
 
 // TokensOrErr returns the Tokens value or an error if the edge
@@ -47,14 +62,60 @@ func (e UserEdges) TokensOrErr() ([]*AuthToken, error) {
 	return nil, &NotLoadedError{edge: "tokens"}
 }
 
+// PostsOrErr returns the Posts value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) PostsOrErr() ([]*Post, error) {
+	if e.loadedTypes[1] {
+		return e.Posts, nil
+	}
+	return nil, &NotLoadedError{edge: "posts"}
+}
+
+// CommentsOrErr returns the Comments value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) CommentsOrErr() ([]*Comment, error) {
+	if e.loadedTypes[2] {
+		return e.Comments, nil
+	}
+	return nil, &NotLoadedError{edge: "comments"}
+}
+
+// FollowersOrErr returns the Followers value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) FollowersOrErr() ([]*User, error) {
+	if e.loadedTypes[3] {
+		return e.Followers, nil
+	}
+	return nil, &NotLoadedError{edge: "followers"}
+}
+
+// FollowingOrErr returns the Following value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) FollowingOrErr() ([]*User, error) {
+	if e.loadedTypes[4] {
+		return e.Following, nil
+	}
+	return nil, &NotLoadedError{edge: "following"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*User) scanValues() []interface{} {
 	return []interface{}{
 		&sql.NullInt64{},  // id
 		&sql.NullTime{},   // created_at
 		&sql.NullTime{},   // updated_at
-		&sql.NullString{}, // username
+		&sql.NullString{}, // account
 		&sql.NullString{}, // password_hash
+		&sql.NullString{}, // name
+		&sql.NullString{}, // profile_img
+		&sql.NullString{}, // bkg_wall_img
+	}
+}
+
+// fkValues returns the types for scanning foreign-keys values from sql.Rows.
+func (*User) fkValues() []interface{} {
+	return []interface{}{
+		&sql.NullInt64{}, // post_likes
 	}
 }
 
@@ -81,14 +142,38 @@ func (u *User) assignValues(values ...interface{}) error {
 		u.UpdatedAt = value.Time
 	}
 	if value, ok := values[2].(*sql.NullString); !ok {
-		return fmt.Errorf("unexpected type %T for field username", values[2])
+		return fmt.Errorf("unexpected type %T for field account", values[2])
 	} else if value.Valid {
-		u.Username = value.String
+		u.Account = value.String
 	}
 	if value, ok := values[3].(*sql.NullString); !ok {
 		return fmt.Errorf("unexpected type %T for field password_hash", values[3])
 	} else if value.Valid {
 		u.PasswordHash = value.String
+	}
+	if value, ok := values[4].(*sql.NullString); !ok {
+		return fmt.Errorf("unexpected type %T for field name", values[4])
+	} else if value.Valid {
+		u.Name = value.String
+	}
+	if value, ok := values[5].(*sql.NullString); !ok {
+		return fmt.Errorf("unexpected type %T for field profile_img", values[5])
+	} else if value.Valid {
+		u.ProfileImg = value.String
+	}
+	if value, ok := values[6].(*sql.NullString); !ok {
+		return fmt.Errorf("unexpected type %T for field bkg_wall_img", values[6])
+	} else if value.Valid {
+		u.BkgWallImg = value.String
+	}
+	values = values[7:]
+	if len(values) == len(user.ForeignKeys) {
+		if value, ok := values[0].(*sql.NullInt64); !ok {
+			return fmt.Errorf("unexpected type %T for edge-field post_likes", value)
+		} else if value.Valid {
+			u.post_likes = new(int)
+			*u.post_likes = int(value.Int64)
+		}
 	}
 	return nil
 }
@@ -96,6 +181,26 @@ func (u *User) assignValues(values ...interface{}) error {
 // QueryTokens queries the tokens edge of the User.
 func (u *User) QueryTokens() *AuthTokenQuery {
 	return (&UserClient{u.config}).QueryTokens(u)
+}
+
+// QueryPosts queries the posts edge of the User.
+func (u *User) QueryPosts() *PostQuery {
+	return (&UserClient{u.config}).QueryPosts(u)
+}
+
+// QueryComments queries the comments edge of the User.
+func (u *User) QueryComments() *CommentQuery {
+	return (&UserClient{u.config}).QueryComments(u)
+}
+
+// QueryFollowers queries the followers edge of the User.
+func (u *User) QueryFollowers() *UserQuery {
+	return (&UserClient{u.config}).QueryFollowers(u)
+}
+
+// QueryFollowing queries the following edge of the User.
+func (u *User) QueryFollowing() *UserQuery {
+	return (&UserClient{u.config}).QueryFollowing(u)
 }
 
 // Update returns a builder for updating this User.
@@ -125,9 +230,15 @@ func (u *User) String() string {
 	builder.WriteString(u.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", updated_at=")
 	builder.WriteString(u.UpdatedAt.Format(time.ANSIC))
-	builder.WriteString(", username=")
-	builder.WriteString(u.Username)
+	builder.WriteString(", account=")
+	builder.WriteString(u.Account)
 	builder.WriteString(", password_hash=<sensitive>")
+	builder.WriteString(", name=")
+	builder.WriteString(u.Name)
+	builder.WriteString(", profile_img=")
+	builder.WriteString(u.ProfileImg)
+	builder.WriteString(", bkg_wall_img=")
+	builder.WriteString(u.BkgWallImg)
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -22,11 +22,22 @@ func (User) Mixin() []ent.Mixin {
 // Fields of the User.
 func (User) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("username").Immutable().Unique().
-			MinLen(1).MaxLen(15).
-			Match(regexp.MustCompile("[a-zA-Z_]+$")),
-		field.String("password_hash").Sensitive(),
-		//field.String("nickname").MinLen(1).MaxLen(31),
+		field.String("account").
+			Unique().
+			Immutable().
+			NotEmpty().
+			MaxLen(15).
+			Match(regexp.MustCompile("[0-9a-zA-Z_]+$")),
+		field.String("password_hash").
+			Sensitive(),
+		field.String("name").
+			NotEmpty().
+			MaxLen(15),
+		field.String("profile_img").
+			Default("/static/img/default-user-profile-img.png"),
+		field.String("bkg_wall_img").
+			Default("/static/img/default-user-bkg-img.jpg"),
+
 		//field.Enum("status").Values("active", "inactive", "suspend").Default("active"),
 	}
 }
@@ -35,5 +46,9 @@ func (User) Fields() []ent.Field {
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("tokens", AuthToken.Type),
+		edge.To("posts", Post.Type),
+		edge.To("comments", Comment.Type),
+		edge.To("following", User.Type).
+			From("followers"),
 	}
 }

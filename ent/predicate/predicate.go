@@ -9,6 +9,9 @@ import (
 // AuthToken is the predicate function for authtoken builders.
 type AuthToken func(*sql.Selector)
 
+// Comment is the predicate function for comment builders.
+type Comment func(*sql.Selector)
+
 // Post is the predicate function for post builders.
 type Post func(*sql.Selector)
 

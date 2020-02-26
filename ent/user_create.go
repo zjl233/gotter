@@ -11,6 +11,8 @@ import (
 	"github.com/facebookincubator/ent/dialect/sql/sqlgraph"
 	"github.com/facebookincubator/ent/schema/field"
 	"github.com/zjl233/gotter/ent/authtoken"
+	"github.com/zjl233/gotter/ent/comment"
+	"github.com/zjl233/gotter/ent/post"
 	"github.com/zjl233/gotter/ent/user"
 )
 
@@ -19,9 +21,16 @@ type UserCreate struct {
 	config
 	created_at    *time.Time
 	updated_at    *time.Time
-	username      *string
+	account       *string
 	password_hash *string
+	name          *string
+	profile_img   *string
+	bkg_wall_img  *string
 	tokens        map[int]struct{}
+	posts         map[int]struct{}
+	comments      map[int]struct{}
+	followers     map[int]struct{}
+	following     map[int]struct{}
 }
 
 // SetCreatedAt sets the created_at field.
@@ -52,15 +61,49 @@ func (uc *UserCreate) SetNillableUpdatedAt(t *time.Time) *UserCreate {
 	return uc
 }
 
-// SetUsername sets the username field.
-func (uc *UserCreate) SetUsername(s string) *UserCreate {
-	uc.username = &s
+// SetAccount sets the account field.
+func (uc *UserCreate) SetAccount(s string) *UserCreate {
+	uc.account = &s
 	return uc
 }
 
 // SetPasswordHash sets the password_hash field.
 func (uc *UserCreate) SetPasswordHash(s string) *UserCreate {
 	uc.password_hash = &s
+	return uc
+}
+
+// SetName sets the name field.
+func (uc *UserCreate) SetName(s string) *UserCreate {
+	uc.name = &s
+	return uc
+}
+
+// SetProfileImg sets the profile_img field.
+func (uc *UserCreate) SetProfileImg(s string) *UserCreate {
+	uc.profile_img = &s
+	return uc
+}
+
+// SetNillableProfileImg sets the profile_img field if the given value is not nil.
+func (uc *UserCreate) SetNillableProfileImg(s *string) *UserCreate {
+	if s != nil {
+		uc.SetProfileImg(*s)
+	}
+	return uc
+}
+
+// SetBkgWallImg sets the bkg_wall_img field.
+func (uc *UserCreate) SetBkgWallImg(s string) *UserCreate {
+	uc.bkg_wall_img = &s
+	return uc
+}
+
+// SetNillableBkgWallImg sets the bkg_wall_img field if the given value is not nil.
+func (uc *UserCreate) SetNillableBkgWallImg(s *string) *UserCreate {
+	if s != nil {
+		uc.SetBkgWallImg(*s)
+	}
 	return uc
 }
 
@@ -84,6 +127,86 @@ func (uc *UserCreate) AddTokens(a ...*AuthToken) *UserCreate {
 	return uc.AddTokenIDs(ids...)
 }
 
+// AddPostIDs adds the posts edge to Post by ids.
+func (uc *UserCreate) AddPostIDs(ids ...int) *UserCreate {
+	if uc.posts == nil {
+		uc.posts = make(map[int]struct{})
+	}
+	for i := range ids {
+		uc.posts[ids[i]] = struct{}{}
+	}
+	return uc
+}
+
+// AddPosts adds the posts edges to Post.
+func (uc *UserCreate) AddPosts(p ...*Post) *UserCreate {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return uc.AddPostIDs(ids...)
+}
+
+// AddCommentIDs adds the comments edge to Comment by ids.
+func (uc *UserCreate) AddCommentIDs(ids ...int) *UserCreate {
+	if uc.comments == nil {
+		uc.comments = make(map[int]struct{})
+	}
+	for i := range ids {
+		uc.comments[ids[i]] = struct{}{}
+	}
+	return uc
+}
+
+// AddComments adds the comments edges to Comment.
+func (uc *UserCreate) AddComments(c ...*Comment) *UserCreate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uc.AddCommentIDs(ids...)
+}
+
+// AddFollowerIDs adds the followers edge to User by ids.
+func (uc *UserCreate) AddFollowerIDs(ids ...int) *UserCreate {
+	if uc.followers == nil {
+		uc.followers = make(map[int]struct{})
+	}
+	for i := range ids {
+		uc.followers[ids[i]] = struct{}{}
+	}
+	return uc
+}
+
+// AddFollowers adds the followers edges to User.
+func (uc *UserCreate) AddFollowers(u ...*User) *UserCreate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uc.AddFollowerIDs(ids...)
+}
+
+// AddFollowingIDs adds the following edge to User by ids.
+func (uc *UserCreate) AddFollowingIDs(ids ...int) *UserCreate {
+	if uc.following == nil {
+		uc.following = make(map[int]struct{})
+	}
+	for i := range ids {
+		uc.following[ids[i]] = struct{}{}
+	}
+	return uc
+}
+
+// AddFollowing adds the following edges to User.
+func (uc *UserCreate) AddFollowing(u ...*User) *UserCreate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uc.AddFollowingIDs(ids...)
+}
+
 // Save creates the User in the database.
 func (uc *UserCreate) Save(ctx context.Context) (*User, error) {
 	if uc.created_at == nil {
@@ -94,14 +217,28 @@ func (uc *UserCreate) Save(ctx context.Context) (*User, error) {
 		v := user.DefaultUpdatedAt()
 		uc.updated_at = &v
 	}
-	if uc.username == nil {
-		return nil, errors.New("ent: missing required field \"username\"")
+	if uc.account == nil {
+		return nil, errors.New("ent: missing required field \"account\"")
 	}
-	if err := user.UsernameValidator(*uc.username); err != nil {
-		return nil, fmt.Errorf("ent: validator failed for field \"username\": %v", err)
+	if err := user.AccountValidator(*uc.account); err != nil {
+		return nil, fmt.Errorf("ent: validator failed for field \"account\": %v", err)
 	}
 	if uc.password_hash == nil {
 		return nil, errors.New("ent: missing required field \"password_hash\"")
+	}
+	if uc.name == nil {
+		return nil, errors.New("ent: missing required field \"name\"")
+	}
+	if err := user.NameValidator(*uc.name); err != nil {
+		return nil, fmt.Errorf("ent: validator failed for field \"name\": %v", err)
+	}
+	if uc.profile_img == nil {
+		v := user.DefaultProfileImg
+		uc.profile_img = &v
+	}
+	if uc.bkg_wall_img == nil {
+		v := user.DefaultBkgWallImg
+		uc.bkg_wall_img = &v
 	}
 	return uc.sqlSave(ctx)
 }
@@ -142,13 +279,13 @@ func (uc *UserCreate) sqlSave(ctx context.Context) (*User, error) {
 		})
 		u.UpdatedAt = *value
 	}
-	if value := uc.username; value != nil {
+	if value := uc.account; value != nil {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,
 			Value:  *value,
-			Column: user.FieldUsername,
+			Column: user.FieldAccount,
 		})
-		u.Username = *value
+		u.Account = *value
 	}
 	if value := uc.password_hash; value != nil {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
@@ -157,6 +294,30 @@ func (uc *UserCreate) sqlSave(ctx context.Context) (*User, error) {
 			Column: user.FieldPasswordHash,
 		})
 		u.PasswordHash = *value
+	}
+	if value := uc.name; value != nil {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  *value,
+			Column: user.FieldName,
+		})
+		u.Name = *value
+	}
+	if value := uc.profile_img; value != nil {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  *value,
+			Column: user.FieldProfileImg,
+		})
+		u.ProfileImg = *value
+	}
+	if value := uc.bkg_wall_img; value != nil {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  *value,
+			Column: user.FieldBkgWallImg,
+		})
+		u.BkgWallImg = *value
 	}
 	if nodes := uc.tokens; len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -169,6 +330,82 @@ func (uc *UserCreate) sqlSave(ctx context.Context) (*User, error) {
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeInt,
 					Column: authtoken.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.posts; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PostsTable,
+			Columns: []string{user.PostsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: post.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.comments; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CommentsTable,
+			Columns: []string{user.CommentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: comment.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.followers; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   user.FollowersTable,
+			Columns: user.FollowersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.following; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.FollowingTable,
+			Columns: user.FollowingPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
 				},
 			},
 		}

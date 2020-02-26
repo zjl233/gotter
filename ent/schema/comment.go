@@ -6,13 +6,13 @@ import (
 	"github.com/facebookincubator/ent/schema/field"
 )
 
-// Post holds the schema definition for the Post entity.
-type Post struct {
+// Comment holds the schema definition for the Comment entity.
+type Comment struct {
 	ent.Schema
 }
 
-// Fields of the Post.
-func (Post) Fields() []ent.Field {
+// Fields of the Comment.
+func (Comment) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("content").
 			NotEmpty().
@@ -20,15 +20,16 @@ func (Post) Fields() []ent.Field {
 	}
 }
 
-// Edges of the Post.
-func (Post) Edges() []ent.Edge {
+// Edges of the Comment.
+func (Comment) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("author", User.Type).
-			Ref("posts").
+			Ref("comments").
 			Required().
 			Unique(),
-		edge.To("comments", Comment.Type),
-		edge.To("likes", User.Type),
+		edge.From("post", Post.Type).
+			Ref("comments").
+			Required().
+			Unique(),
 	}
-
 }

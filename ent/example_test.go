@@ -43,6 +43,30 @@ func ExampleAuthToken() {
 
 	// Output:
 }
+func ExampleComment() {
+	if dsn == "" {
+		return
+	}
+	ctx := context.Background()
+	drv, err := sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatalf("failed creating database client: %v", err)
+	}
+	defer drv.Close()
+	client := NewClient(Driver(drv))
+	// creating vertices for the comment's edges.
+
+	// create comment vertex with its edges.
+	c := client.Comment.
+		Create().
+		SetContent("string").
+		SaveX(ctx)
+	log.Println("comment created:", c)
+
+	// query edges.
+
+	// Output:
+}
 func ExamplePost() {
 	if dsn == "" {
 		return
@@ -55,15 +79,45 @@ func ExamplePost() {
 	defer drv.Close()
 	client := NewClient(Driver(drv))
 	// creating vertices for the post's edges.
+	c1 := client.Comment.
+		Create().
+		SetContent("string").
+		SaveX(ctx)
+	log.Println("comment created:", c1)
+	u2 := client.User.
+		Create().
+		SetCreatedAt(time.Now()).
+		SetUpdatedAt(time.Now()).
+		SetAccount("string").
+		SetPasswordHash("string").
+		SetName("string").
+		SetProfileImg("string").
+		SetBkgWallImg("string").
+		SaveX(ctx)
+	log.Println("user created:", u2)
 
 	// create post vertex with its edges.
 	po := client.Post.
 		Create().
 		SetContent("string").
+		AddComments(c1).
+		AddLikes(u2).
 		SaveX(ctx)
 	log.Println("post created:", po)
 
 	// query edges.
+
+	c1, err = po.QueryComments().First(ctx)
+	if err != nil {
+		log.Fatalf("failed querying comments: %v", err)
+	}
+	log.Println("comments found:", c1)
+
+	u2, err = po.QueryLikes().First(ctx)
+	if err != nil {
+		log.Fatalf("failed querying likes: %v", err)
+	}
+	log.Println("likes found:", u2)
 
 	// Output:
 }
@@ -87,15 +141,42 @@ func ExampleUser() {
 		SetExpiresAt(time.Now()).
 		SaveX(ctx)
 	log.Println("authtoken created:", at0)
+	po1 := client.Post.
+		Create().
+		SetContent("string").
+		SaveX(ctx)
+	log.Println("post created:", po1)
+	c2 := client.Comment.
+		Create().
+		SetContent("string").
+		SaveX(ctx)
+	log.Println("comment created:", c2)
+	u4 := client.User.
+		Create().
+		SetCreatedAt(time.Now()).
+		SetUpdatedAt(time.Now()).
+		SetAccount("string").
+		SetPasswordHash("string").
+		SetName("string").
+		SetProfileImg("string").
+		SetBkgWallImg("string").
+		SaveX(ctx)
+	log.Println("user created:", u4)
 
 	// create user vertex with its edges.
 	u := client.User.
 		Create().
 		SetCreatedAt(time.Now()).
 		SetUpdatedAt(time.Now()).
-		SetUsername("string").
+		SetAccount("string").
 		SetPasswordHash("string").
+		SetName("string").
+		SetProfileImg("string").
+		SetBkgWallImg("string").
 		AddTokens(at0).
+		AddPosts(po1).
+		AddComments(c2).
+		AddFollowing(u4).
 		SaveX(ctx)
 	log.Println("user created:", u)
 
@@ -105,6 +186,24 @@ func ExampleUser() {
 		log.Fatalf("failed querying tokens: %v", err)
 	}
 	log.Println("tokens found:", at0)
+
+	po1, err = u.QueryPosts().First(ctx)
+	if err != nil {
+		log.Fatalf("failed querying posts: %v", err)
+	}
+	log.Println("posts found:", po1)
+
+	c2, err = u.QueryComments().First(ctx)
+	if err != nil {
+		log.Fatalf("failed querying comments: %v", err)
+	}
+	log.Println("comments found:", c2)
+
+	u4, err = u.QueryFollowing().First(ctx)
+	if err != nil {
+		log.Fatalf("failed querying following: %v", err)
+	}
+	log.Println("following found:", u4)
 
 	// Output:
 }

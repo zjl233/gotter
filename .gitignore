@@ -93,3 +93,5 @@ fabric.properties
 .idea/misc.xml
 .idea/modules.xml
 .idea/vcs.xml
+!/spec/rest-client.env.json
+!/spec/rest-client.private.env.json

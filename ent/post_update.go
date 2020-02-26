@@ -4,20 +4,29 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/facebookincubator/ent/dialect/sql"
 	"github.com/facebookincubator/ent/dialect/sql/sqlgraph"
 	"github.com/facebookincubator/ent/schema/field"
+	"github.com/zjl233/gotter/ent/comment"
 	"github.com/zjl233/gotter/ent/post"
 	"github.com/zjl233/gotter/ent/predicate"
+	"github.com/zjl233/gotter/ent/user"
 )
 
 // PostUpdate is the builder for updating Post entities.
 type PostUpdate struct {
 	config
-	content    *string
-	predicates []predicate.Post
+	content         *string
+	author          map[int]struct{}
+	comments        map[int]struct{}
+	likes           map[int]struct{}
+	clearedAuthor   bool
+	removedComments map[int]struct{}
+	removedLikes    map[int]struct{}
+	predicates      []predicate.Post
 }
 
 // Where adds a new predicate for the builder.
@@ -32,12 +41,118 @@ func (pu *PostUpdate) SetContent(s string) *PostUpdate {
 	return pu
 }
 
+// SetAuthorID sets the author edge to User by id.
+func (pu *PostUpdate) SetAuthorID(id int) *PostUpdate {
+	if pu.author == nil {
+		pu.author = make(map[int]struct{})
+	}
+	pu.author[id] = struct{}{}
+	return pu
+}
+
+// SetAuthor sets the author edge to User.
+func (pu *PostUpdate) SetAuthor(u *User) *PostUpdate {
+	return pu.SetAuthorID(u.ID)
+}
+
+// AddCommentIDs adds the comments edge to Comment by ids.
+func (pu *PostUpdate) AddCommentIDs(ids ...int) *PostUpdate {
+	if pu.comments == nil {
+		pu.comments = make(map[int]struct{})
+	}
+	for i := range ids {
+		pu.comments[ids[i]] = struct{}{}
+	}
+	return pu
+}
+
+// AddComments adds the comments edges to Comment.
+func (pu *PostUpdate) AddComments(c ...*Comment) *PostUpdate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return pu.AddCommentIDs(ids...)
+}
+
+// AddLikeIDs adds the likes edge to User by ids.
+func (pu *PostUpdate) AddLikeIDs(ids ...int) *PostUpdate {
+	if pu.likes == nil {
+		pu.likes = make(map[int]struct{})
+	}
+	for i := range ids {
+		pu.likes[ids[i]] = struct{}{}
+	}
+	return pu
+}
+
+// AddLikes adds the likes edges to User.
+func (pu *PostUpdate) AddLikes(u ...*User) *PostUpdate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return pu.AddLikeIDs(ids...)
+}
+
+// ClearAuthor clears the author edge to User.
+func (pu *PostUpdate) ClearAuthor() *PostUpdate {
+	pu.clearedAuthor = true
+	return pu
+}
+
+// RemoveCommentIDs removes the comments edge to Comment by ids.
+func (pu *PostUpdate) RemoveCommentIDs(ids ...int) *PostUpdate {
+	if pu.removedComments == nil {
+		pu.removedComments = make(map[int]struct{})
+	}
+	for i := range ids {
+		pu.removedComments[ids[i]] = struct{}{}
+	}
+	return pu
+}
+
+// RemoveComments removes comments edges to Comment.
+func (pu *PostUpdate) RemoveComments(c ...*Comment) *PostUpdate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return pu.RemoveCommentIDs(ids...)
+}
+
+// RemoveLikeIDs removes the likes edge to User by ids.
+func (pu *PostUpdate) RemoveLikeIDs(ids ...int) *PostUpdate {
+	if pu.removedLikes == nil {
+		pu.removedLikes = make(map[int]struct{})
+	}
+	for i := range ids {
+		pu.removedLikes[ids[i]] = struct{}{}
+	}
+	return pu
+}
+
+// RemoveLikes removes likes edges to User.
+func (pu *PostUpdate) RemoveLikes(u ...*User) *PostUpdate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return pu.RemoveLikeIDs(ids...)
+}
+
 // Save executes the query and returns the number of rows/vertices matched by this operation.
 func (pu *PostUpdate) Save(ctx context.Context) (int, error) {
 	if pu.content != nil {
 		if err := post.ContentValidator(*pu.content); err != nil {
 			return 0, fmt.Errorf("ent: validator failed for field \"content\": %v", err)
 		}
+	}
+	if len(pu.author) > 1 {
+		return 0, errors.New("ent: multiple assignments on a unique edge \"author\"")
+	}
+	if pu.clearedAuthor && pu.author == nil {
+		return 0, errors.New("ent: clearing a unique edge \"author\"")
 	}
 	return pu.sqlSave(ctx)
 }
@@ -89,6 +204,117 @@ func (pu *PostUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: post.FieldContent,
 		})
 	}
+	if pu.clearedAuthor {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   post.AuthorTable,
+			Columns: []string{post.AuthorColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.author; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   post.AuthorTable,
+			Columns: []string{post.AuthorColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if nodes := pu.removedComments; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.CommentsTable,
+			Columns: []string{post.CommentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: comment.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.comments; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.CommentsTable,
+			Columns: []string{post.CommentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: comment.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if nodes := pu.removedLikes; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.LikesTable,
+			Columns: []string{post.LikesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.likes; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.LikesTable,
+			Columns: []string{post.LikesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, pu.driver, _spec); err != nil {
 		if cerr, ok := isSQLConstraintError(err); ok {
 			err = cerr
@@ -101,8 +327,14 @@ func (pu *PostUpdate) sqlSave(ctx context.Context) (n int, err error) {
 // PostUpdateOne is the builder for updating a single Post entity.
 type PostUpdateOne struct {
 	config
-	id      int
-	content *string
+	id              int
+	content         *string
+	author          map[int]struct{}
+	comments        map[int]struct{}
+	likes           map[int]struct{}
+	clearedAuthor   bool
+	removedComments map[int]struct{}
+	removedLikes    map[int]struct{}
 }
 
 // SetContent sets the content field.
@@ -111,12 +343,118 @@ func (puo *PostUpdateOne) SetContent(s string) *PostUpdateOne {
 	return puo
 }
 
+// SetAuthorID sets the author edge to User by id.
+func (puo *PostUpdateOne) SetAuthorID(id int) *PostUpdateOne {
+	if puo.author == nil {
+		puo.author = make(map[int]struct{})
+	}
+	puo.author[id] = struct{}{}
+	return puo
+}
+
+// SetAuthor sets the author edge to User.
+func (puo *PostUpdateOne) SetAuthor(u *User) *PostUpdateOne {
+	return puo.SetAuthorID(u.ID)
+}
+
+// AddCommentIDs adds the comments edge to Comment by ids.
+func (puo *PostUpdateOne) AddCommentIDs(ids ...int) *PostUpdateOne {
+	if puo.comments == nil {
+		puo.comments = make(map[int]struct{})
+	}
+	for i := range ids {
+		puo.comments[ids[i]] = struct{}{}
+	}
+	return puo
+}
+
+// AddComments adds the comments edges to Comment.
+func (puo *PostUpdateOne) AddComments(c ...*Comment) *PostUpdateOne {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return puo.AddCommentIDs(ids...)
+}
+
+// AddLikeIDs adds the likes edge to User by ids.
+func (puo *PostUpdateOne) AddLikeIDs(ids ...int) *PostUpdateOne {
+	if puo.likes == nil {
+		puo.likes = make(map[int]struct{})
+	}
+	for i := range ids {
+		puo.likes[ids[i]] = struct{}{}
+	}
+	return puo
+}
+
+// AddLikes adds the likes edges to User.
+func (puo *PostUpdateOne) AddLikes(u ...*User) *PostUpdateOne {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return puo.AddLikeIDs(ids...)
+}
+
+// ClearAuthor clears the author edge to User.
+func (puo *PostUpdateOne) ClearAuthor() *PostUpdateOne {
+	puo.clearedAuthor = true
+	return puo
+}
+
+// RemoveCommentIDs removes the comments edge to Comment by ids.
+func (puo *PostUpdateOne) RemoveCommentIDs(ids ...int) *PostUpdateOne {
+	if puo.removedComments == nil {
+		puo.removedComments = make(map[int]struct{})
+	}
+	for i := range ids {
+		puo.removedComments[ids[i]] = struct{}{}
+	}
+	return puo
+}
+
+// RemoveComments removes comments edges to Comment.
+func (puo *PostUpdateOne) RemoveComments(c ...*Comment) *PostUpdateOne {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return puo.RemoveCommentIDs(ids...)
+}
+
+// RemoveLikeIDs removes the likes edge to User by ids.
+func (puo *PostUpdateOne) RemoveLikeIDs(ids ...int) *PostUpdateOne {
+	if puo.removedLikes == nil {
+		puo.removedLikes = make(map[int]struct{})
+	}
+	for i := range ids {
+		puo.removedLikes[ids[i]] = struct{}{}
+	}
+	return puo
+}
+
+// RemoveLikes removes likes edges to User.
+func (puo *PostUpdateOne) RemoveLikes(u ...*User) *PostUpdateOne {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return puo.RemoveLikeIDs(ids...)
+}
+
 // Save executes the query and returns the updated entity.
 func (puo *PostUpdateOne) Save(ctx context.Context) (*Post, error) {
 	if puo.content != nil {
 		if err := post.ContentValidator(*puo.content); err != nil {
 			return nil, fmt.Errorf("ent: validator failed for field \"content\": %v", err)
 		}
+	}
+	if len(puo.author) > 1 {
+		return nil, errors.New("ent: multiple assignments on a unique edge \"author\"")
+	}
+	if puo.clearedAuthor && puo.author == nil {
+		return nil, errors.New("ent: clearing a unique edge \"author\"")
 	}
 	return puo.sqlSave(ctx)
 }
@@ -161,6 +499,117 @@ func (puo *PostUpdateOne) sqlSave(ctx context.Context) (po *Post, err error) {
 			Value:  *value,
 			Column: post.FieldContent,
 		})
+	}
+	if puo.clearedAuthor {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   post.AuthorTable,
+			Columns: []string{post.AuthorColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.author; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   post.AuthorTable,
+			Columns: []string{post.AuthorColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if nodes := puo.removedComments; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.CommentsTable,
+			Columns: []string{post.CommentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: comment.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.comments; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.CommentsTable,
+			Columns: []string{post.CommentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: comment.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if nodes := puo.removedLikes; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.LikesTable,
+			Columns: []string{post.LikesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.likes; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.LikesTable,
+			Columns: []string{post.LikesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	po = &Post{config: puo.config}
 	_spec.Assign = po.assignValues

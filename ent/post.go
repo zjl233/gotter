@@ -8,6 +8,7 @@ import (
 
 	"github.com/facebookincubator/ent/dialect/sql"
 	"github.com/zjl233/gotter/ent/post"
+	"github.com/zjl233/gotter/ent/user"
 )
 
 // Post is the model entity for the Post schema.
@@ -17,6 +18,55 @@ type Post struct {
 	ID int `json:"id,omitempty"`
 	// Content holds the value of the "content" field.
 	Content string `json:"content,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the PostQuery when eager-loading is set.
+	Edges      PostEdges `json:"edges"`
+	user_posts *int
+}
+
+// PostEdges holds the relations/edges for other nodes in the graph.
+type PostEdges struct {
+	// Author holds the value of the author edge.
+	Author *User
+	// Comments holds the value of the comments edge.
+	Comments []*Comment
+	// Likes holds the value of the likes edge.
+	Likes []*User
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [3]bool
+}
+
+// AuthorOrErr returns the Author value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e PostEdges) AuthorOrErr() (*User, error) {
+	if e.loadedTypes[0] {
+		if e.Author == nil {
+			// The edge author was loaded in eager-loading,
+			// but was not found.
+			return nil, &NotFoundError{label: user.Label}
+		}
+		return e.Author, nil
+	}
+	return nil, &NotLoadedError{edge: "author"}
+}
+
+// CommentsOrErr returns the Comments value or an error if the edge
+// was not loaded in eager-loading.
+func (e PostEdges) CommentsOrErr() ([]*Comment, error) {
+	if e.loadedTypes[1] {
+		return e.Comments, nil
+	}
+	return nil, &NotLoadedError{edge: "comments"}
+}
+
+// LikesOrErr returns the Likes value or an error if the edge
+// was not loaded in eager-loading.
+func (e PostEdges) LikesOrErr() ([]*User, error) {
+	if e.loadedTypes[2] {
+		return e.Likes, nil
+	}
+	return nil, &NotLoadedError{edge: "likes"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -24,6 +74,13 @@ func (*Post) scanValues() []interface{} {
 	return []interface{}{
 		&sql.NullInt64{},  // id
 		&sql.NullString{}, // content
+	}
+}
+
+// fkValues returns the types for scanning foreign-keys values from sql.Rows.
+func (*Post) fkValues() []interface{} {
+	return []interface{}{
+		&sql.NullInt64{}, // user_posts
 	}
 }
 
@@ -44,7 +101,31 @@ func (po *Post) assignValues(values ...interface{}) error {
 	} else if value.Valid {
 		po.Content = value.String
 	}
+	values = values[1:]
+	if len(values) == len(post.ForeignKeys) {
+		if value, ok := values[0].(*sql.NullInt64); !ok {
+			return fmt.Errorf("unexpected type %T for edge-field user_posts", value)
+		} else if value.Valid {
+			po.user_posts = new(int)
+			*po.user_posts = int(value.Int64)
+		}
+	}
 	return nil
+}
+
+// QueryAuthor queries the author edge of the Post.
+func (po *Post) QueryAuthor() *UserQuery {
+	return (&PostClient{po.config}).QueryAuthor(po)
+}
+
+// QueryComments queries the comments edge of the Post.
+func (po *Post) QueryComments() *CommentQuery {
+	return (&PostClient{po.config}).QueryComments(po)
+}
+
+// QueryLikes queries the likes edge of the Post.
+func (po *Post) QueryLikes() *UserQuery {
+	return (&PostClient{po.config}).QueryLikes(po)
 }
 
 // Update returns a builder for updating this Post.

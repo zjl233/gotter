@@ -10,6 +10,7 @@ import (
 	"github.com/zjl233/gotter/ent/migrate"
 
 	"github.com/zjl233/gotter/ent/authtoken"
+	"github.com/zjl233/gotter/ent/comment"
 	"github.com/zjl233/gotter/ent/post"
 	"github.com/zjl233/gotter/ent/user"
 
@@ -25,6 +26,8 @@ type Client struct {
 	Schema *migrate.Schema
 	// AuthToken is the client for interacting with the AuthToken builders.
 	AuthToken *AuthTokenClient
+	// Comment is the client for interacting with the Comment builders.
+	Comment *CommentClient
 	// Post is the client for interacting with the Post builders.
 	Post *PostClient
 	// User is the client for interacting with the User builders.
@@ -39,6 +42,7 @@ func NewClient(opts ...Option) *Client {
 		config:    c,
 		Schema:    migrate.NewSchema(c.driver),
 		AuthToken: NewAuthTokenClient(c),
+		Comment:   NewCommentClient(c),
 		Post:      NewPostClient(c),
 		User:      NewUserClient(c),
 	}
@@ -73,6 +77,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		config:    cfg,
 		AuthToken: NewAuthTokenClient(cfg),
+		Comment:   NewCommentClient(cfg),
 		Post:      NewPostClient(cfg),
 		User:      NewUserClient(cfg),
 	}, nil
@@ -94,6 +99,7 @@ func (c *Client) Debug() *Client {
 		config:    cfg,
 		Schema:    migrate.NewSchema(cfg.driver),
 		AuthToken: NewAuthTokenClient(cfg),
+		Comment:   NewCommentClient(cfg),
 		Post:      NewPostClient(cfg),
 		User:      NewUserClient(cfg),
 	}
@@ -182,6 +188,98 @@ func (c *AuthTokenClient) QueryUser(at *AuthToken) *UserQuery {
 	return query
 }
 
+// CommentClient is a client for the Comment schema.
+type CommentClient struct {
+	config
+}
+
+// NewCommentClient returns a client for the Comment from the given config.
+func NewCommentClient(c config) *CommentClient {
+	return &CommentClient{config: c}
+}
+
+// Create returns a create builder for Comment.
+func (c *CommentClient) Create() *CommentCreate {
+	return &CommentCreate{config: c.config}
+}
+
+// Update returns an update builder for Comment.
+func (c *CommentClient) Update() *CommentUpdate {
+	return &CommentUpdate{config: c.config}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CommentClient) UpdateOne(co *Comment) *CommentUpdateOne {
+	return c.UpdateOneID(co.ID)
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CommentClient) UpdateOneID(id int) *CommentUpdateOne {
+	return &CommentUpdateOne{config: c.config, id: id}
+}
+
+// Delete returns a delete builder for Comment.
+func (c *CommentClient) Delete() *CommentDelete {
+	return &CommentDelete{config: c.config}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *CommentClient) DeleteOne(co *Comment) *CommentDeleteOne {
+	return c.DeleteOneID(co.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *CommentClient) DeleteOneID(id int) *CommentDeleteOne {
+	return &CommentDeleteOne{c.Delete().Where(comment.ID(id))}
+}
+
+// Create returns a query builder for Comment.
+func (c *CommentClient) Query() *CommentQuery {
+	return &CommentQuery{config: c.config}
+}
+
+// Get returns a Comment entity by its id.
+func (c *CommentClient) Get(ctx context.Context, id int) (*Comment, error) {
+	return c.Query().Where(comment.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CommentClient) GetX(ctx context.Context, id int) *Comment {
+	co, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return co
+}
+
+// QueryAuthor queries the author edge of a Comment.
+func (c *CommentClient) QueryAuthor(co *Comment) *UserQuery {
+	query := &UserQuery{config: c.config}
+	id := co.ID
+	step := sqlgraph.NewStep(
+		sqlgraph.From(comment.Table, comment.FieldID, id),
+		sqlgraph.To(user.Table, user.FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, comment.AuthorTable, comment.AuthorColumn),
+	)
+	query.sql = sqlgraph.Neighbors(co.driver.Dialect(), step)
+
+	return query
+}
+
+// QueryPost queries the post edge of a Comment.
+func (c *CommentClient) QueryPost(co *Comment) *PostQuery {
+	query := &PostQuery{config: c.config}
+	id := co.ID
+	step := sqlgraph.NewStep(
+		sqlgraph.From(comment.Table, comment.FieldID, id),
+		sqlgraph.To(post.Table, post.FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, comment.PostTable, comment.PostColumn),
+	)
+	query.sql = sqlgraph.Neighbors(co.driver.Dialect(), step)
+
+	return query
+}
+
 // PostClient is a client for the Post schema.
 type PostClient struct {
 	config
@@ -244,6 +342,48 @@ func (c *PostClient) GetX(ctx context.Context, id int) *Post {
 		panic(err)
 	}
 	return po
+}
+
+// QueryAuthor queries the author edge of a Post.
+func (c *PostClient) QueryAuthor(po *Post) *UserQuery {
+	query := &UserQuery{config: c.config}
+	id := po.ID
+	step := sqlgraph.NewStep(
+		sqlgraph.From(post.Table, post.FieldID, id),
+		sqlgraph.To(user.Table, user.FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, post.AuthorTable, post.AuthorColumn),
+	)
+	query.sql = sqlgraph.Neighbors(po.driver.Dialect(), step)
+
+	return query
+}
+
+// QueryComments queries the comments edge of a Post.
+func (c *PostClient) QueryComments(po *Post) *CommentQuery {
+	query := &CommentQuery{config: c.config}
+	id := po.ID
+	step := sqlgraph.NewStep(
+		sqlgraph.From(post.Table, post.FieldID, id),
+		sqlgraph.To(comment.Table, comment.FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, post.CommentsTable, post.CommentsColumn),
+	)
+	query.sql = sqlgraph.Neighbors(po.driver.Dialect(), step)
+
+	return query
+}
+
+// QueryLikes queries the likes edge of a Post.
+func (c *PostClient) QueryLikes(po *Post) *UserQuery {
+	query := &UserQuery{config: c.config}
+	id := po.ID
+	step := sqlgraph.NewStep(
+		sqlgraph.From(post.Table, post.FieldID, id),
+		sqlgraph.To(user.Table, user.FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, post.LikesTable, post.LikesColumn),
+	)
+	query.sql = sqlgraph.Neighbors(po.driver.Dialect(), step)
+
+	return query
 }
 
 // UserClient is a client for the User schema.
@@ -318,6 +458,62 @@ func (c *UserClient) QueryTokens(u *User) *AuthTokenQuery {
 		sqlgraph.From(user.Table, user.FieldID, id),
 		sqlgraph.To(authtoken.Table, authtoken.FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, user.TokensTable, user.TokensColumn),
+	)
+	query.sql = sqlgraph.Neighbors(u.driver.Dialect(), step)
+
+	return query
+}
+
+// QueryPosts queries the posts edge of a User.
+func (c *UserClient) QueryPosts(u *User) *PostQuery {
+	query := &PostQuery{config: c.config}
+	id := u.ID
+	step := sqlgraph.NewStep(
+		sqlgraph.From(user.Table, user.FieldID, id),
+		sqlgraph.To(post.Table, post.FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, user.PostsTable, user.PostsColumn),
+	)
+	query.sql = sqlgraph.Neighbors(u.driver.Dialect(), step)
+
+	return query
+}
+
+// QueryComments queries the comments edge of a User.
+func (c *UserClient) QueryComments(u *User) *CommentQuery {
+	query := &CommentQuery{config: c.config}
+	id := u.ID
+	step := sqlgraph.NewStep(
+		sqlgraph.From(user.Table, user.FieldID, id),
+		sqlgraph.To(comment.Table, comment.FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, user.CommentsTable, user.CommentsColumn),
+	)
+	query.sql = sqlgraph.Neighbors(u.driver.Dialect(), step)
+
+	return query
+}
+
+// QueryFollowers queries the followers edge of a User.
+func (c *UserClient) QueryFollowers(u *User) *UserQuery {
+	query := &UserQuery{config: c.config}
+	id := u.ID
+	step := sqlgraph.NewStep(
+		sqlgraph.From(user.Table, user.FieldID, id),
+		sqlgraph.To(user.Table, user.FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, true, user.FollowersTable, user.FollowersPrimaryKey...),
+	)
+	query.sql = sqlgraph.Neighbors(u.driver.Dialect(), step)
+
+	return query
+}
+
+// QueryFollowing queries the following edge of a User.
+func (c *UserClient) QueryFollowing(u *User) *UserQuery {
+	query := &UserQuery{config: c.config}
+	id := u.ID
+	step := sqlgraph.NewStep(
+		sqlgraph.From(user.Table, user.FieldID, id),
+		sqlgraph.To(user.Table, user.FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, false, user.FollowingTable, user.FollowingPrimaryKey...),
 	)
 	query.sql = sqlgraph.Neighbors(u.driver.Dialect(), step)
 

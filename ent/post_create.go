@@ -9,19 +9,78 @@ import (
 
 	"github.com/facebookincubator/ent/dialect/sql/sqlgraph"
 	"github.com/facebookincubator/ent/schema/field"
+	"github.com/zjl233/gotter/ent/comment"
 	"github.com/zjl233/gotter/ent/post"
+	"github.com/zjl233/gotter/ent/user"
 )
 
 // PostCreate is the builder for creating a Post entity.
 type PostCreate struct {
 	config
-	content *string
+	content  *string
+	author   map[int]struct{}
+	comments map[int]struct{}
+	likes    map[int]struct{}
 }
 
 // SetContent sets the content field.
 func (pc *PostCreate) SetContent(s string) *PostCreate {
 	pc.content = &s
 	return pc
+}
+
+// SetAuthorID sets the author edge to User by id.
+func (pc *PostCreate) SetAuthorID(id int) *PostCreate {
+	if pc.author == nil {
+		pc.author = make(map[int]struct{})
+	}
+	pc.author[id] = struct{}{}
+	return pc
+}
+
+// SetAuthor sets the author edge to User.
+func (pc *PostCreate) SetAuthor(u *User) *PostCreate {
+	return pc.SetAuthorID(u.ID)
+}
+
+// AddCommentIDs adds the comments edge to Comment by ids.
+func (pc *PostCreate) AddCommentIDs(ids ...int) *PostCreate {
+	if pc.comments == nil {
+		pc.comments = make(map[int]struct{})
+	}
+	for i := range ids {
+		pc.comments[ids[i]] = struct{}{}
+	}
+	return pc
+}
+
+// AddComments adds the comments edges to Comment.
+func (pc *PostCreate) AddComments(c ...*Comment) *PostCreate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return pc.AddCommentIDs(ids...)
+}
+
+// AddLikeIDs adds the likes edge to User by ids.
+func (pc *PostCreate) AddLikeIDs(ids ...int) *PostCreate {
+	if pc.likes == nil {
+		pc.likes = make(map[int]struct{})
+	}
+	for i := range ids {
+		pc.likes[ids[i]] = struct{}{}
+	}
+	return pc
+}
+
+// AddLikes adds the likes edges to User.
+func (pc *PostCreate) AddLikes(u ...*User) *PostCreate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return pc.AddLikeIDs(ids...)
 }
 
 // Save creates the Post in the database.
@@ -31,6 +90,12 @@ func (pc *PostCreate) Save(ctx context.Context) (*Post, error) {
 	}
 	if err := post.ContentValidator(*pc.content); err != nil {
 		return nil, fmt.Errorf("ent: validator failed for field \"content\": %v", err)
+	}
+	if len(pc.author) > 1 {
+		return nil, errors.New("ent: multiple assignments on a unique edge \"author\"")
+	}
+	if pc.author == nil {
+		return nil, errors.New("ent: missing required edge \"author\"")
 	}
 	return pc.sqlSave(ctx)
 }
@@ -62,6 +127,63 @@ func (pc *PostCreate) sqlSave(ctx context.Context) (*Post, error) {
 			Column: post.FieldContent,
 		})
 		po.Content = *value
+	}
+	if nodes := pc.author; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   post.AuthorTable,
+			Columns: []string{post.AuthorColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := pc.comments; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.CommentsTable,
+			Columns: []string{post.CommentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: comment.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := pc.likes; len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.LikesTable,
+			Columns: []string{post.LikesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for k, _ := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if err := sqlgraph.CreateNode(ctx, pc.driver, _spec); err != nil {
 		if cerr, ok := isSQLConstraintError(err); ok {

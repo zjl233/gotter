@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// AuthToken is the client for interacting with the AuthToken builders.
 	AuthToken *AuthTokenClient
+	// Comment is the client for interacting with the Comment builders.
+	Comment *CommentClient
 	// Post is the client for interacting with the Post builders.
 	Post *PostClient
 	// User is the client for interacting with the User builders.
@@ -36,6 +38,7 @@ func (tx *Tx) Client() *Client {
 		config:    tx.config,
 		Schema:    migrate.NewSchema(tx.driver),
 		AuthToken: NewAuthTokenClient(tx.config),
+		Comment:   NewCommentClient(tx.config),
 		Post:      NewPostClient(tx.config),
 		User:      NewUserClient(tx.config),
 	}

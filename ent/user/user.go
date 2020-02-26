@@ -18,10 +18,16 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at vertex property in the database.
 	FieldUpdatedAt = "updated_at"
-	// FieldUsername holds the string denoting the username vertex property in the database.
-	FieldUsername = "username"
+	// FieldAccount holds the string denoting the account vertex property in the database.
+	FieldAccount = "account"
 	// FieldPasswordHash holds the string denoting the password_hash vertex property in the database.
 	FieldPasswordHash = "password_hash"
+	// FieldName holds the string denoting the name vertex property in the database.
+	FieldName = "name"
+	// FieldProfileImg holds the string denoting the profile_img vertex property in the database.
+	FieldProfileImg = "profile_img"
+	// FieldBkgWallImg holds the string denoting the bkg_wall_img vertex property in the database.
+	FieldBkgWallImg = "bkg_wall_img"
 
 	// Table holds the table name of the user in the database.
 	Table = "users"
@@ -32,6 +38,24 @@ const (
 	TokensInverseTable = "auth_tokens"
 	// TokensColumn is the table column denoting the tokens relation/edge.
 	TokensColumn = "user_tokens"
+	// PostsTable is the table the holds the posts relation/edge.
+	PostsTable = "posts"
+	// PostsInverseTable is the table name for the Post entity.
+	// It exists in this package in order to avoid circular dependency with the "post" package.
+	PostsInverseTable = "posts"
+	// PostsColumn is the table column denoting the posts relation/edge.
+	PostsColumn = "user_posts"
+	// CommentsTable is the table the holds the comments relation/edge.
+	CommentsTable = "comments"
+	// CommentsInverseTable is the table name for the Comment entity.
+	// It exists in this package in order to avoid circular dependency with the "comment" package.
+	CommentsInverseTable = "comments"
+	// CommentsColumn is the table column denoting the comments relation/edge.
+	CommentsColumn = "user_comments"
+	// FollowersTable is the table the holds the followers relation/edge. The primary key declared below.
+	FollowersTable = "user_following"
+	// FollowingTable is the table the holds the following relation/edge. The primary key declared below.
+	FollowingTable = "user_following"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -39,9 +63,26 @@ var Columns = []string{
 	FieldID,
 	FieldCreatedAt,
 	FieldUpdatedAt,
-	FieldUsername,
+	FieldAccount,
 	FieldPasswordHash,
+	FieldName,
+	FieldProfileImg,
+	FieldBkgWallImg,
 }
+
+// ForeignKeys holds the SQL foreign-keys that are owned by the User type.
+var ForeignKeys = []string{
+	"post_likes",
+}
+
+var (
+	// FollowersPrimaryKey and FollowersColumn2 are the table columns denoting the
+	// primary key for the followers relation (M2M).
+	FollowersPrimaryKey = []string{"user_id", "follower_id"}
+	// FollowingPrimaryKey and FollowingColumn2 are the table columns denoting the
+	// primary key for the following relation (M2M).
+	FollowingPrimaryKey = []string{"user_id", "follower_id"}
+)
 
 var (
 	mixin       = schema.User{}.Mixin()
@@ -62,23 +103,52 @@ var (
 	// UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	UpdateDefaultUpdatedAt = descUpdatedAt.UpdateDefault.(func() time.Time)
 
-	// descUsername is the schema descriptor for username field.
-	descUsername = fields[0].Descriptor()
-	// UsernameValidator is a validator for the "username" field. It is called by the builders before save.
-	UsernameValidator = func() func(string) error {
-		validators := descUsername.Validators
+	// descAccount is the schema descriptor for account field.
+	descAccount = fields[0].Descriptor()
+	// AccountValidator is a validator for the "account" field. It is called by the builders before save.
+	AccountValidator = func() func(string) error {
+		validators := descAccount.Validators
 		fns := [...]func(string) error{
 			validators[0].(func(string) error),
 			validators[1].(func(string) error),
 			validators[2].(func(string) error),
 		}
-		return func(username string) error {
+		return func(account string) error {
 			for _, fn := range fns {
-				if err := fn(username); err != nil {
+				if err := fn(account); err != nil {
 					return err
 				}
 			}
 			return nil
 		}
 	}()
+
+	// descName is the schema descriptor for name field.
+	descName = fields[2].Descriptor()
+	// NameValidator is a validator for the "name" field. It is called by the builders before save.
+	NameValidator = func() func(string) error {
+		validators := descName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(name string) error {
+			for _, fn := range fns {
+				if err := fn(name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+
+	// descProfileImg is the schema descriptor for profile_img field.
+	descProfileImg = fields[3].Descriptor()
+	// DefaultProfileImg holds the default value on creation for the profile_img field.
+	DefaultProfileImg = descProfileImg.Default.(string)
+
+	// descBkgWallImg is the schema descriptor for bkg_wall_img field.
+	descBkgWallImg = fields[4].Descriptor()
+	// DefaultBkgWallImg holds the default value on creation for the bkg_wall_img field.
+	DefaultBkgWallImg = descBkgWallImg.Default.(string)
 )

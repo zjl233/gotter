@@ -1,3 +1,24 @@
+### Sign up api
+POST http://localhost:8080/API/user/
+Content-Type: application/json
+
+{
+  "name": "test",
+  "account": "test",
+  "password": "testtest",
+  "password2": "testtest"
+}
+
+
+
+
+<> 2020-02-25T082318.200.json   ### 成功，返回 user
+<> 2020-02-25T082016.200.json   ### 200，密码不一致错误
+
+###
+
+
+### Send POST request with json body
 POST http://localhost:8080/API/user/login
 Content-Type: application/json
 
@@ -6,6 +27,20 @@ Content-Type: application/json
   "password": "zjl233zjl233"
 }
 
+<> 2020-02-25T080243.200.json ### 成功，返回User，头部有 x-auth: jwt...
+<> 2020-02-25T075526.200.json
+<> 2020-02-25T073600.200.json
+
+# Response Header x-auth: jwt...
+# Response body
+
+###
+
+GET http://localhost:8080/API/user/info
+Accept: application/json
+X-auth: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlNTA4M2U1YTUwM2E3MmM2YjIyYzgzYyIsImFjY2VzcyI6ImF1dGgiLCJleHAiOjE1ODI2NDA3MDAsImlhdCI6MTU4MjYyOTkwMH0.QvFPGN-h1EVtp9oxt65-ja-TG6MoAEx8iAMPyMxqXjA
+
+<> 2020-02-25T080829.200.json ### 返回 User
 
 
 
