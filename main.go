@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/deepmap/oapi-codegen/pkg/middleware"
+	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
 	_ "github.com/lib/pq"
@@ -22,6 +23,12 @@ import (
 )
 
 func main() {
+	// load env
+	err := godotenv.Load()
+	if err != nil {
+		log.Panic("load env failed", err)
+	}
+
 	var port = flag.Int("port", 3001, "Port for test HTTP server")
 	flag.Parse()
 
@@ -36,9 +43,11 @@ func main() {
 	swagger.Servers = nil
 
 	//  ==============db================
-	client, err := ent.Open("postgres", "host=localhost port=5432 user=postgres dbname=conduit")
+	connString := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=",
+		os.Getenv("PG_HOST"), os.Getenv("PG_PORT"), os.Getenv("PG_USER"), os.Getenv("PG_DB"))
+	client, err := ent.Open("postgres", connString)
 	if err != nil {
-		log.Fatalf("failed connecting to mysql: %v", err)
+		log.Fatalf("failed connecting to psql: %v", err)
 	}
 	//defer client.Close()
 	ctx := context.Background()

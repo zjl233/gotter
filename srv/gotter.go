@@ -24,6 +24,7 @@ import (
 	"github.com/zjl233/gotter/api"
 	"github.com/zjl233/gotter/ent"
 	"github.com/zjl233/gotter/ent/authtoken"
+	"os"
 	"time"
 )
 
@@ -53,7 +54,7 @@ func (s *PostSrv) SetJWT(ctx echo.Context, c context.Context, u *ent.User) error
 	claims["iat"] = time.Now().Unix()
 
 	// Generate encoded token and send it as response.
-	t, err := token.SignedString([]byte("secret"))
+	t, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
 	if err != nil {
 		return err
 	}
