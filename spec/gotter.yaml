@@ -14,6 +14,84 @@ info:
 servers:
   - url: http://localhost:8080
 paths:
+  /API/post/{id}:
+    get:
+      description: expand a post
+      operationId: showPost
+      parameters:
+        - $ref: "#/components/parameters/x-auth"
+        - $ref: "#/components/parameters/id"
+      responses:
+        '200':
+          description: expand post's likes user, comment and author
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: boolean
+                  posts:
+                    $ref: '#/components/schemas/PostExp'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /API/user/posts:
+    get:
+      description: create new post
+      operationId: listPosts
+      parameters:
+        - $ref: "#/components/parameters/x-auth"
+      responses:
+        '200':
+          description: list user and following's posts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: boolean
+                  posts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Post'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /API/post:
+    post:
+      description: create new post
+      operationId: createPost
+      parameters:
+        - $ref: "#/components/parameters/x-auth"
+      requestBody:
+        description: Post to add to the store
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+              required:
+                - content
+      responses:
+        '201':
+          description: created success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: boolean
+                  post:
+                    $ref: '#/components/schemas/Post'
+        default:
+          $ref: '#/components/responses/Error'
+
   /API/user/:
     post:
       description: sign up new user
@@ -67,8 +145,6 @@ paths:
                     $ref: '#/components/schemas/User'
         default:
           $ref: '#/components/responses/Error'
-
-  
 
   /API/user/login:
     post:
@@ -128,7 +204,7 @@ paths:
                     $ref: '#/components/schemas/User'
         default:
           $ref: '#/components/responses/Error'
-  
+
 
 #  /posts:
 #    get:
@@ -222,16 +298,6 @@ paths:
 #          $ref: "#/components/responses/Error"
 components:
   schemas:
-#    Post:
-#      allOf:
-#        - $ref: "#/components/schemas/NewPost"
-#        - required:
-#            - id
-#          properties:
-#            id:
-#              type: integer
-#              description: Unique id of the post
-
     User:
       required:
         - _id
@@ -267,13 +333,116 @@ components:
         bkgWallImg:
           type: string
 
-#    NewPost:
-#      required:
-#        - content
-#      properties:
-#        content:
-#          type: string
-#          description: Content of the post
+    Author:
+      required:
+        - _id
+        - account
+        - name
+        - profileImg
+      properties:
+        _id:
+          type: integer
+          description: Unique id of the post
+        account:
+          type: string
+        name:
+          type: string
+        profileImg:
+          type: string
+
+    Post:
+      required:
+        - _id
+        - content
+        - author
+        - likes
+        - comments
+        - created
+      properties:
+        _id:
+          type: integer
+          description: Unique id of the post
+        content:
+          type: string
+        author:
+          $ref: '#/components/schemas/Author'
+        likes:
+          type: array
+          items:
+            type: integer
+          nullable: false
+        comments:
+          type: array
+          items:
+            type: integer
+          nullable: false
+        created:
+          type: string
+          format: 'date-time'
+
+    # Explode Post
+    PostExp:
+      required:
+        - _id
+        - content
+        - author
+        - likes
+        - comments
+        - created
+      properties:
+        _id:
+          type: integer
+          description: Unique id of the post
+        content:
+          type: string
+        author:
+          type: object
+          required:
+            - _id
+            - account
+            - name
+            - profileImg
+            - isFollowing
+          properties:
+            _id:
+              type: integer
+              description: Unique id of the post
+            account:
+              type: string
+            name:
+              type: string
+            profileImg:
+              type: string
+            isFollowing:
+              type: boolean
+        likes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Author'
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+        created:
+          type: string
+          format: 'date-time'
+
+    Comment:
+      required:
+        - _id
+        - content
+        - user
+        - created
+      properties:
+        _id:
+          type: integer
+        content:
+          type: string
+        user:
+          $ref: '#/components/schemas/Author'
+        created:
+          type: string
+          format: 'date-time'
 
     NewUser:
       required:
@@ -334,6 +503,13 @@ components:
       description: jwt auth
       schema:
         type: string
+    id:
+      name: id
+      in: path
+      description: ID of item
+      required: true
+      schema:
+        type: integer
 
 
 

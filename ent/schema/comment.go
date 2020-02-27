@@ -11,6 +11,13 @@ type Comment struct {
 	ent.Schema
 }
 
+// Mixin of the User.
+func (Comment) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		TimeMixin{},
+	}
+}
+
 // Fields of the Comment.
 func (Comment) Fields() []ent.Field {
 	return []ent.Field{

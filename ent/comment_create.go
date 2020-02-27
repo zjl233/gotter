@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/facebookincubator/ent/dialect/sql/sqlgraph"
 	"github.com/facebookincubator/ent/schema/field"
@@ -17,9 +18,39 @@ import (
 // CommentCreate is the builder for creating a Comment entity.
 type CommentCreate struct {
 	config
-	content *string
-	author  map[int]struct{}
-	post    map[int]struct{}
+	created_at *time.Time
+	updated_at *time.Time
+	content    *string
+	author     map[int]struct{}
+	post       map[int]struct{}
+}
+
+// SetCreatedAt sets the created_at field.
+func (cc *CommentCreate) SetCreatedAt(t time.Time) *CommentCreate {
+	cc.created_at = &t
+	return cc
+}
+
+// SetNillableCreatedAt sets the created_at field if the given value is not nil.
+func (cc *CommentCreate) SetNillableCreatedAt(t *time.Time) *CommentCreate {
+	if t != nil {
+		cc.SetCreatedAt(*t)
+	}
+	return cc
+}
+
+// SetUpdatedAt sets the updated_at field.
+func (cc *CommentCreate) SetUpdatedAt(t time.Time) *CommentCreate {
+	cc.updated_at = &t
+	return cc
+}
+
+// SetNillableUpdatedAt sets the updated_at field if the given value is not nil.
+func (cc *CommentCreate) SetNillableUpdatedAt(t *time.Time) *CommentCreate {
+	if t != nil {
+		cc.SetUpdatedAt(*t)
+	}
+	return cc
 }
 
 // SetContent sets the content field.
@@ -58,6 +89,14 @@ func (cc *CommentCreate) SetPost(p *Post) *CommentCreate {
 
 // Save creates the Comment in the database.
 func (cc *CommentCreate) Save(ctx context.Context) (*Comment, error) {
+	if cc.created_at == nil {
+		v := comment.DefaultCreatedAt()
+		cc.created_at = &v
+	}
+	if cc.updated_at == nil {
+		v := comment.DefaultUpdatedAt()
+		cc.updated_at = &v
+	}
 	if cc.content == nil {
 		return nil, errors.New("ent: missing required field \"content\"")
 	}
@@ -99,6 +138,22 @@ func (cc *CommentCreate) sqlSave(ctx context.Context) (*Comment, error) {
 			},
 		}
 	)
+	if value := cc.created_at; value != nil {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  *value,
+			Column: comment.FieldCreatedAt,
+		})
+		c.CreatedAt = *value
+	}
+	if value := cc.updated_at; value != nil {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  *value,
+			Column: comment.FieldUpdatedAt,
+		})
+		c.UpdatedAt = *value
+	}
 	if value := cc.content; value != nil {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,

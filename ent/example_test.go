@@ -59,6 +59,8 @@ func ExampleComment() {
 	// create comment vertex with its edges.
 	c := client.Comment.
 		Create().
+		SetCreatedAt(time.Now()).
+		SetUpdatedAt(time.Now()).
 		SetContent("string").
 		SaveX(ctx)
 	log.Println("comment created:", c)
@@ -81,6 +83,8 @@ func ExamplePost() {
 	// creating vertices for the post's edges.
 	c1 := client.Comment.
 		Create().
+		SetCreatedAt(time.Now()).
+		SetUpdatedAt(time.Now()).
 		SetContent("string").
 		SaveX(ctx)
 	log.Println("comment created:", c1)
@@ -99,6 +103,8 @@ func ExamplePost() {
 	// create post vertex with its edges.
 	po := client.Post.
 		Create().
+		SetCreatedAt(time.Now()).
+		SetUpdatedAt(time.Now()).
 		SetContent("string").
 		AddComments(c1).
 		AddLikes(u2).
@@ -143,11 +149,15 @@ func ExampleUser() {
 	log.Println("authtoken created:", at0)
 	po1 := client.Post.
 		Create().
+		SetCreatedAt(time.Now()).
+		SetUpdatedAt(time.Now()).
 		SetContent("string").
 		SaveX(ctx)
 	log.Println("post created:", po1)
 	c2 := client.Comment.
 		Create().
+		SetCreatedAt(time.Now()).
+		SetUpdatedAt(time.Now()).
 		SetContent("string").
 		SaveX(ctx)
 	log.Println("comment created:", c2)

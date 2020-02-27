@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/facebookincubator/ent/dialect/sql"
 	"github.com/facebookincubator/ent/dialect/sql/sqlgraph"
@@ -19,6 +20,8 @@ import (
 // PostUpdate is the builder for updating Post entities.
 type PostUpdate struct {
 	config
+
+	updated_at      *time.Time
 	content         *string
 	author          map[int]struct{}
 	comments        map[int]struct{}
@@ -32,6 +35,12 @@ type PostUpdate struct {
 // Where adds a new predicate for the builder.
 func (pu *PostUpdate) Where(ps ...predicate.Post) *PostUpdate {
 	pu.predicates = append(pu.predicates, ps...)
+	return pu
+}
+
+// SetUpdatedAt sets the updated_at field.
+func (pu *PostUpdate) SetUpdatedAt(t time.Time) *PostUpdate {
+	pu.updated_at = &t
 	return pu
 }
 
@@ -143,6 +152,10 @@ func (pu *PostUpdate) RemoveLikes(u ...*User) *PostUpdate {
 
 // Save executes the query and returns the number of rows/vertices matched by this operation.
 func (pu *PostUpdate) Save(ctx context.Context) (int, error) {
+	if pu.updated_at == nil {
+		v := post.UpdateDefaultUpdatedAt()
+		pu.updated_at = &v
+	}
 	if pu.content != nil {
 		if err := post.ContentValidator(*pu.content); err != nil {
 			return 0, fmt.Errorf("ent: validator failed for field \"content\": %v", err)
@@ -196,6 +209,13 @@ func (pu *PostUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value := pu.updated_at; value != nil {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  *value,
+			Column: post.FieldUpdatedAt,
+		})
 	}
 	if value := pu.content; value != nil {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
@@ -327,7 +347,9 @@ func (pu *PostUpdate) sqlSave(ctx context.Context) (n int, err error) {
 // PostUpdateOne is the builder for updating a single Post entity.
 type PostUpdateOne struct {
 	config
-	id              int
+	id int
+
+	updated_at      *time.Time
 	content         *string
 	author          map[int]struct{}
 	comments        map[int]struct{}
@@ -335,6 +357,12 @@ type PostUpdateOne struct {
 	clearedAuthor   bool
 	removedComments map[int]struct{}
 	removedLikes    map[int]struct{}
+}
+
+// SetUpdatedAt sets the updated_at field.
+func (puo *PostUpdateOne) SetUpdatedAt(t time.Time) *PostUpdateOne {
+	puo.updated_at = &t
+	return puo
 }
 
 // SetContent sets the content field.
@@ -445,6 +473,10 @@ func (puo *PostUpdateOne) RemoveLikes(u ...*User) *PostUpdateOne {
 
 // Save executes the query and returns the updated entity.
 func (puo *PostUpdateOne) Save(ctx context.Context) (*Post, error) {
+	if puo.updated_at == nil {
+		v := post.UpdateDefaultUpdatedAt()
+		puo.updated_at = &v
+	}
 	if puo.content != nil {
 		if err := post.ContentValidator(*puo.content); err != nil {
 			return nil, fmt.Errorf("ent: validator failed for field \"content\": %v", err)
@@ -492,6 +524,13 @@ func (puo *PostUpdateOne) sqlSave(ctx context.Context) (po *Post, err error) {
 				Column: post.FieldID,
 			},
 		},
+	}
+	if value := puo.updated_at; value != nil {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  *value,
+			Column: post.FieldUpdatedAt,
+		})
 	}
 	if value := puo.content; value != nil {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{

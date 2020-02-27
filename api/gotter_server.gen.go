@@ -18,6 +18,12 @@ import (
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
+	// (POST /API/post)
+	CreatePost(ctx echo.Context, params CreatePostParams) error
+
+	// (GET /API/post/{id})
+	ShowPost(ctx echo.Context, id Id, params ShowPostParams) error
+
 	// (GET /API/user/)
 	Refresh(ctx echo.Context, params RefreshParams) error
 
@@ -29,11 +35,83 @@ type ServerInterface interface {
 
 	// (POST /API/user/login)
 	Login(ctx echo.Context) error
+
+	// (GET /API/user/posts)
+	ListPosts(ctx echo.Context, params ListPostsParams) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
+}
+
+// CreatePost converts echo context to params.
+func (w *ServerInterfaceWrapper) CreatePost(ctx echo.Context) error {
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreatePostParams
+
+	headers := ctx.Request().Header
+	// ------------- Required header parameter "x-auth" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("x-auth")]; found {
+		var XAuth XAuth
+		n := len(valueList)
+		if n != 1 {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for x-auth, got %d", n))
+		}
+
+		err = runtime.BindStyledParameter("simple", false, "x-auth", valueList[0], &XAuth)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter x-auth: %s", err))
+		}
+
+		params.XAuth = XAuth
+	} else {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Header parameter x-auth is required, but not found"))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.CreatePost(ctx, params)
+	return err
+}
+
+// ShowPost converts echo context to params.
+func (w *ServerInterfaceWrapper) ShowPost(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameter("simple", false, "id", ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ShowPostParams
+
+	headers := ctx.Request().Header
+	// ------------- Required header parameter "x-auth" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("x-auth")]; found {
+		var XAuth XAuth
+		n := len(valueList)
+		if n != 1 {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for x-auth, got %d", n))
+		}
+
+		err = runtime.BindStyledParameter("simple", false, "x-auth", valueList[0], &XAuth)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter x-auth: %s", err))
+		}
+
+		params.XAuth = XAuth
+	} else {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Header parameter x-auth is required, but not found"))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.ShowPost(ctx, id, params)
+	return err
 }
 
 // Refresh converts echo context to params.
@@ -116,6 +194,37 @@ func (w *ServerInterfaceWrapper) Login(ctx echo.Context) error {
 	return err
 }
 
+// ListPosts converts echo context to params.
+func (w *ServerInterfaceWrapper) ListPosts(ctx echo.Context) error {
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListPostsParams
+
+	headers := ctx.Request().Header
+	// ------------- Required header parameter "x-auth" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("x-auth")]; found {
+		var XAuth XAuth
+		n := len(valueList)
+		if n != 1 {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for x-auth, got %d", n))
+		}
+
+		err = runtime.BindStyledParameter("simple", false, "x-auth", valueList[0], &XAuth)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter x-auth: %s", err))
+		}
+
+		params.XAuth = XAuth
+	} else {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Header parameter x-auth is required, but not found"))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.ListPosts(ctx, params)
+	return err
+}
+
 // RegisterHandlers adds each server route to the EchoRouter.
 func RegisterHandlers(router interface {
 	CONNECT(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
@@ -133,33 +242,42 @@ func RegisterHandlers(router interface {
 		Handler: si,
 	}
 
+	router.POST("/API/post", wrapper.CreatePost)
+	router.GET("/API/post/:id", wrapper.ShowPost)
 	router.GET("/API/user/", wrapper.Refresh)
 	router.POST("/API/user/", wrapper.SignUp)
 	router.GET("/API/user/info", wrapper.Info)
 	router.POST("/API/user/login", wrapper.Login)
+	router.GET("/API/user/posts", wrapper.ListPosts)
 
 }
 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+RXX2vkNhD/KkIt9EW33ttSCH7q9ghlIZeGbkMfjqUo8qytnC3pRuP4QvB3L5LtrHft",
-	"LA2Bg6NvtqWZ+c1v/vqJK1s5a8CQ5+kTdxJlBQQY376+kzUV4SkDr1A70tbwlN83xOKJ4Dq8FyAzQC64",
-	"kRXwdJATHOFLrREynhLWILhXBVQyKKRHF256Qm1y3rZtuOydNR6i6UtEi+FBWUNgKDxK50qtZACR3PuA",
-	"5Gmk0aF1gKQ7eUAcmbF396CItyJ8/+jzqUvRHqvAe5kDF6f4Irq6pJHOO2tLkIZ30Ac/Pw0Xn03FB74T",
-	"p1iC3DEGZavKGgYRipNEEjv1nZPRr2tobj3g1GGplK07no61hussBEawW6O/1CCYksZYYqqQJjpbya9X",
-	"YPIQ6ve/CF5p8/w6w0QX5DkzP3lmtPocL7xWq5PeNxazFxwYjgWTxEqQnthFcACloph6e4uVJJ4eFB0h",
-	"WC2PEFycQbCaQvhYe2JeVsCkZyMDbzV6kjo9cUMoxVjtAd2uFXw+B/7Rc/TFoDOdMbtnVABz1tMhw7Uh",
-	"yAEDAaMUmpBz9zn/W5blpspnj/e2LG3TYdIElR/dGlnov0hE+XgQCzpeJzek4DSG1neN7BXKHNq9LmHe",
-	"tZMIBYbHAeojdvBjRMWA5sjCEZO72AS02duh00kV6YdK6jJgdJpAVr/6RuY54ELbQ5Pddt/Y+mbD/gJZ",
-	"ccFrDEIFkUuTZCQz6TRrRo0mAmSqtAaYdI4LXmoFxkdiextrJ1UBbLVYHmn3aZI0TbOQ8XhhMU96WZ9c",
-	"bT5cXm8v360Wy0VBVRkZB6z8H/st4INWMAcxiVeSkJaaynDldxvxrW82XPAHQN8hf79YLpZBp3VgpNM8",
-	"5T/HT6FCqIghT9Y3m6T2gEl4y2GmKSLsEXzB7psQxVBDcaxsMp7yP7uzqPEwDT898R8R9jzlPySHmZkc",
-	"riT91Gt3J6NstVy+YZC9PHcEr/suMAesnxlJ7BRt+x/Gz4caEQyxoJVJk7Fjkrohf7IXnBnoUf9e9uDn",
-	"ID6zlHTTPsrE7jSJl9e5YbVjBpqIbxK0rc7NretXDvD0m80eX8X6OQ6HoTtD2vYEmGBZ3ZmBjPV9goVh",
-	"K2NXyCZLUTvJlvffRbZc9w4zhRCc/VYZ0opRfQ+t84UapxoNU6O0nqTNJij4Pxc6f3sQSpvr6Nl86V6F",
-	"43n249EbavbFDfjsdjm3tJ2f+jML2W5uf0edBV7JsnLk2bla/z4Spguhr5UC779ZoYcfH8CHoSiPlpvS",
-	"KlkW1lN6sbxY8nbX/hsAAP//qTpsRcoOAAA=",
+	"H4sIAAAAAAAC/+RYW0/sNhD+K5ZbiZewWagqoTx1S2m1EoeuSlEfjlZHxplNDIntYzsEhPLfKzuXzW0v",
+	"h11oq77AJo7n9n0znvErpiKVggM3GgevWBJFUjCg3BML7d8QNFVMGiY4DvD8FyRWiBlIsYeZfSOJibGH",
+	"OUkBB3aPhxV8zZiCEAdGZeBhTWNIiRVmXqT7ihuIQOGi8PDzKclMPNT0kBvkVio9MZAQ1FpTtW8Pbdoo",
+	"xiNcWG0KtBRcg3PwSimh7A8quAFu7E8iZcIosUb4D9pa8tqSKJWQoAwr94NSLTXi/gGowYVn33/S0dAl",
+	"pw+loDWJAHt9+5x1WWJaMu+FSIBwXJpe+/m5/rBR5X7gpde3xe7r2kBFmgqOwJkiiTFEleJLJ51fs8zE",
+	"ZWC6/n4ZY8QdZ18zQCy0xDAxICm0WTvXQO1hQqnIuBlBpgZ1ZEEqsWIJzNNoDNFuVL449tVqKqEdEcvC",
+	"w5ciTSuwR90bGt6ix8A+qoAYcBtXQqXE4ACHxMCpYekoxpkGF9rvFaxwgL/z1ynoVxj4FQDj/tXWVKLW",
+	"JljnbiC/qxR0nWsFv4efBoVspDxUQukhSjgXBtGYcMfTlDxfA49slp796OGU8ebR2wzlUM2JRpzRxwqW",
+	"b5Mqida5UOEGB+plDxGDEiDaoAvrgCLUuCA14DSCOhacTzsWXGyx4HxowqdMG6RJCoho1FJwqNIe/lXg",
+	"1gRviV1bZ2mwsDl49PxtysI+3PVcqalPFnti6PHs4lmSkPsEcLAiiYZGM1GKvBw9/RL2CAdatCMrqzDV",
+	"qlpx6KaqxejqWb4jTB9WvZn+VSSJyO3jyOH1YeW9a8nwONzAyW10rk+L4sN5uV+SvQs1x4+QdyTQ/WP0",
+	"F0mScRrYOmoxLW3akrd9gFZtUn7Dvs1sFXpnOesLOwLD1360QlFb00uAViSXrv1jfCXqHpdQF35ICUus",
+	"jZIZIOlPOidRBGrCxLq9vi3fodlijv4EYtv9TNlNsTEy8P3WnkGPOUMmZ8aAQjQRHBCR0nGOAtcusJWO",
+	"mSQ0BnQ+mXak68D38zyfELc8ESryq73av55fXt3cXp2eT6aT2KSJizioVP++ugX1xCiMmei7T3xLS2Zs",
+	"Xce/CWffbDHHHn4CpUvLzybTydTKFBI4kQwH+Af3ynNzjoPcny3mvqwP2Op/r8l2uYQ45HU62DxyQ8U8",
+	"xAG+dOuLcqk9dH0eT/v1J3419hTLkjmgzc8ifDlgiNlcxXrkrD/cZ8qwriEjEAlD+8/WBW2EgsG41h/J",
+	"zqdnB/hSo7GtdLqo75q1do9RZbVEOqMUtC5zYEUqiWP6Gzf9cuwsnNSGTP4rCwu7N4IRQsGzJDxEZJxO",
+	"t7HIDyKTt/NLFlaU62A1PRArvQ9Ytkc6GK8qgFbpiUbu+EN2fPJQdQQiF9/mWH07mFaqvxFIBSsFOkYP",
+	"+RDGP8q1w0rC0fDZHO/9ZljXQ+yFzWWmlEXASnUwdINUXvw4m9Z3RVsued6EnrehkmsWcZRJV8qrcbuX",
+	"eyzidxK/vRpvi2E9zY8E7bZnmIfCrFQDIao6CGSneOL6hfCdK+/HseWmchjVDesHMaST33VTtSHHTaY4",
+	"oi1aD2gztwL+z4l+hCKbiIjxzU3YtV0ej75bwsfqoLYNNu1rq7HboO0t18hNz3K0GWGhjasRKGl5ti3X",
+	"/xuEKSGse6x/ItGbLmU003f1+ddMm0U9pf0LUn04v+7TKfcn2sM6sYTp1lHfjLYnGpXWvQ2zwsMa1FMd",
+	"3c6omghKklhoE1xML6a4WBZ/BwAA//9HrjKY+BoAAA==",
 }
 
 // GetSwagger returns the Swagger specification corresponding to the generated code

@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/facebookincubator/ent/dialect/sql/sqlgraph"
 	"github.com/facebookincubator/ent/schema/field"
@@ -17,10 +18,40 @@ import (
 // PostCreate is the builder for creating a Post entity.
 type PostCreate struct {
 	config
-	content  *string
-	author   map[int]struct{}
-	comments map[int]struct{}
-	likes    map[int]struct{}
+	created_at *time.Time
+	updated_at *time.Time
+	content    *string
+	author     map[int]struct{}
+	comments   map[int]struct{}
+	likes      map[int]struct{}
+}
+
+// SetCreatedAt sets the created_at field.
+func (pc *PostCreate) SetCreatedAt(t time.Time) *PostCreate {
+	pc.created_at = &t
+	return pc
+}
+
+// SetNillableCreatedAt sets the created_at field if the given value is not nil.
+func (pc *PostCreate) SetNillableCreatedAt(t *time.Time) *PostCreate {
+	if t != nil {
+		pc.SetCreatedAt(*t)
+	}
+	return pc
+}
+
+// SetUpdatedAt sets the updated_at field.
+func (pc *PostCreate) SetUpdatedAt(t time.Time) *PostCreate {
+	pc.updated_at = &t
+	return pc
+}
+
+// SetNillableUpdatedAt sets the updated_at field if the given value is not nil.
+func (pc *PostCreate) SetNillableUpdatedAt(t *time.Time) *PostCreate {
+	if t != nil {
+		pc.SetUpdatedAt(*t)
+	}
+	return pc
 }
 
 // SetContent sets the content field.
@@ -85,6 +116,14 @@ func (pc *PostCreate) AddLikes(u ...*User) *PostCreate {
 
 // Save creates the Post in the database.
 func (pc *PostCreate) Save(ctx context.Context) (*Post, error) {
+	if pc.created_at == nil {
+		v := post.DefaultCreatedAt()
+		pc.created_at = &v
+	}
+	if pc.updated_at == nil {
+		v := post.DefaultUpdatedAt()
+		pc.updated_at = &v
+	}
 	if pc.content == nil {
 		return nil, errors.New("ent: missing required field \"content\"")
 	}
@@ -120,6 +159,22 @@ func (pc *PostCreate) sqlSave(ctx context.Context) (*Post, error) {
 			},
 		}
 	)
+	if value := pc.created_at; value != nil {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  *value,
+			Column: post.FieldCreatedAt,
+		})
+		po.CreatedAt = *value
+	}
+	if value := pc.updated_at; value != nil {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  *value,
+			Column: post.FieldUpdatedAt,
+		})
+		po.UpdatedAt = *value
+	}
 	if value := pc.content; value != nil {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,

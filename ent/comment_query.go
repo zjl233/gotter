@@ -278,12 +278,12 @@ func (cq *CommentQuery) WithPost(opts ...func(*PostQuery)) *CommentQuery {
 // Example:
 //
 //	var v []struct {
-//		Content string `json:"content,omitempty"`
+//		CreatedAt time.Time `json:"created_at,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Comment.Query().
-//		GroupBy(comment.FieldContent).
+//		GroupBy(comment.FieldCreatedAt).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 //
@@ -299,11 +299,11 @@ func (cq *CommentQuery) GroupBy(field string, fields ...string) *CommentGroupBy 
 // Example:
 //
 //	var v []struct {
-//		Content string `json:"content,omitempty"`
+//		CreatedAt time.Time `json:"created_at,omitempty"`
 //	}
 //
 //	client.Comment.Query().
-//		Select(comment.FieldContent).
+//		Select(comment.FieldCreatedAt).
 //		Scan(ctx, &v)
 //
 func (cq *CommentQuery) Select(field string, fields ...string) *CommentSelect {
