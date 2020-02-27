@@ -102,6 +102,18 @@ type Error struct {
 	Result bool   `json:"result"`
 }
 
+// CreateCommentJSONBody defines parameters for CreateComment.
+type CreateCommentJSONBody struct {
+	Content string `json:"content"`
+}
+
+// CreateCommentParams defines parameters for CreateComment.
+type CreateCommentParams struct {
+
+	// jwt auth
+	XAuth XAuth `json:"x-auth"`
+}
+
 // CreatePostJSONBody defines parameters for CreatePost.
 type CreatePostJSONBody struct {
 	Content string `json:"content"`
@@ -150,6 +162,9 @@ type ListPostsParams struct {
 	// jwt auth
 	XAuth XAuth `json:"x-auth"`
 }
+
+// CreateCommentRequestBody defines body for CreateComment for application/json ContentType.
+type CreateCommentJSONRequestBody CreateCommentJSONBody
 
 // CreatePostRequestBody defines body for CreatePost for application/json ContentType.
 type CreatePostJSONRequestBody CreatePostJSONBody

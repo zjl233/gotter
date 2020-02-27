@@ -59,7 +59,7 @@ paths:
         default:
           $ref: '#/components/responses/Error'
 
-  /API/post:
+  /API/post/:
     post:
       description: create new post
       operationId: createPost
@@ -89,6 +89,42 @@ paths:
                     type: boolean
                   post:
                     $ref: '#/components/schemas/Post'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /API/comment/post/{id}:
+    post:
+      description: create new comment
+      operationId: createComment
+      parameters:
+        - $ref: "#/components/parameters/x-auth"
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        description: Comment content to add under post
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+              required:
+                - content
+      responses:
+        '201':
+          description: created success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: boolean
+                  post:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
         default:
           $ref: '#/components/responses/Error'
 
