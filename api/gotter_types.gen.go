@@ -176,6 +176,13 @@ type ShowPostParams struct {
 	XAuth XAuth `json:"x-auth"`
 }
 
+// ToggleLikeParams defines parameters for ToggleLike.
+type ToggleLikeParams struct {
+
+	// jwt auth
+	XAuth XAuth `json:"x-auth"`
+}
+
 // SearchUserParams defines parameters for SearchUser.
 type SearchUserParams struct {
 

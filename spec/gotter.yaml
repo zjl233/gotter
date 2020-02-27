@@ -14,6 +14,32 @@ info:
 servers:
   - url: http://localhost:8080
 paths:
+  /API/post/{id}/like:
+    get:
+      description: like post
+      operationId: toggleLike
+      parameters:
+        - $ref: "#/components/parameters/x-auth"
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: boolean
+                  likes:
+                    type: array
+                    description: user likes this post
+                    items:
+                      type: integer
+        default:
+          $ref: '#/components/responses/Error'
+
+
   /API/search/person/{q}:
     get:
       description: Search User
