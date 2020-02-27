@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/zjl233/gotter/api"
 	"github.com/zjl233/gotter/ent"
+	"github.com/zjl233/gotter/ent/user"
 )
 
 // User serializer
@@ -75,6 +76,28 @@ func BuildAuthors(items []*ent.User) (authors []api.Author) {
 	authors = []api.Author{}
 	for _, item := range items {
 		authors = append(authors, BuildAuthor(item))
+	}
+	return
+}
+
+// Author serializer simple version User
+func BuildAuthorCard(ctx context.Context, item, u *ent.User) api.AuthorCard {
+	isFollowing := u.QueryFollowing().Where(user.IDEQ(item.ID)).ExistX(ctx)
+	return api.AuthorCard{
+		Id:          item.ID,
+		Account:     item.Account,
+		BkgWallImg:  item.BkgWallImg,
+		IsFollowing: isFollowing,
+		Name:        item.Name,
+		ProfileImg:  item.ProfileImg,
+	}
+}
+
+// Authors serializer simple version User
+func BuildAuthorCards(ctx context.Context, items []*ent.User, u *ent.User) (authors []api.AuthorCard) {
+	authors = []api.AuthorCard{}
+	for _, item := range items {
+		authors = append(authors, BuildAuthorCard(ctx, item, u))
 	}
 	return
 }

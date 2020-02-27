@@ -14,6 +14,44 @@ info:
 servers:
   - url: http://localhost:8080
 paths:
+  /API/person/{account}/following:
+    get:
+      description: list account's following by card view
+      operationId: listFollowing
+      parameters:
+        - $ref: "#/components/parameters/x-auth"
+        - $ref: "#/components/parameters/account"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuthorCard"
+        default:
+          $ref: '#/components/responses/Error'
+
+  /API/person/{account}/follower:
+    get:
+      description: list account's follower by card view
+      operationId: listFollower
+      parameters:
+        - $ref: "#/components/parameters/x-auth"
+        - $ref: "#/components/parameters/account"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuthorCard"
+        default:
+          $ref: '#/components/responses/Error'
+
   /API/user/follow/{account}:
     get:
       description: create follow relationship between current user and account
@@ -473,6 +511,29 @@ components:
           type: string
         profileImg:
           type: string
+
+    AuthorCard:
+      required:
+        - _id
+        - account
+        - name
+        - profileImg
+        - bkgWallImg
+        - isFollowing
+      properties:
+        _id:
+          type: integer
+          description: Unique id of the post
+        account:
+          type: string
+        name:
+          type: string
+        profileImg:
+          type: string
+        bkgWallImg:
+          type: string
+        isFollowing:
+          type: boolean
 
     Post:
       required:

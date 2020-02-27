@@ -17,6 +17,18 @@ type Author struct {
 	ProfileImg string `json:"profileImg"`
 }
 
+// AuthorCard defines model for AuthorCard.
+type AuthorCard struct {
+
+	// Unique id of the post
+	Id          int    `json:"_id"`
+	Account     string `json:"account"`
+	BkgWallImg  string `json:"bkgWallImg"`
+	IsFollowing bool   `json:"isFollowing"`
+	Name        string `json:"name"`
+	ProfileImg  string `json:"profileImg"`
+}
+
 // Comment defines model for Comment.
 type Comment struct {
 	Id      int       `json:"_id"`
@@ -119,6 +131,20 @@ type CreateCommentParams struct {
 
 // ProfileInfoParams defines parameters for ProfileInfo.
 type ProfileInfoParams struct {
+
+	// jwt auth
+	XAuth XAuth `json:"x-auth"`
+}
+
+// ListFollowerParams defines parameters for ListFollower.
+type ListFollowerParams struct {
+
+	// jwt auth
+	XAuth XAuth `json:"x-auth"`
+}
+
+// ListFollowingParams defines parameters for ListFollowing.
+type ListFollowingParams struct {
 
 	// jwt auth
 	XAuth XAuth `json:"x-auth"`

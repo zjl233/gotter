@@ -24,6 +24,12 @@ type ServerInterface interface {
 	// (GET /API/person/{account})
 	ProfileInfo(ctx echo.Context, account Account, params ProfileInfoParams) error
 
+	// (GET /API/person/{account}/follower)
+	ListFollower(ctx echo.Context, account Account, params ListFollowerParams) error
+
+	// (GET /API/person/{account}/following)
+	ListFollowing(ctx echo.Context, account Account, params ListFollowingParams) error
+
 	// (GET /API/person/{account}/posts)
 	ListProfilePosts(ctx echo.Context, account Account, params ListProfilePostsParams) error
 
@@ -133,6 +139,82 @@ func (w *ServerInterfaceWrapper) ProfileInfo(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.ProfileInfo(ctx, account, params)
+	return err
+}
+
+// ListFollower converts echo context to params.
+func (w *ServerInterfaceWrapper) ListFollower(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "account" -------------
+	var account Account
+
+	err = runtime.BindStyledParameter("simple", false, "account", ctx.Param("account"), &account)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter account: %s", err))
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListFollowerParams
+
+	headers := ctx.Request().Header
+	// ------------- Required header parameter "x-auth" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("x-auth")]; found {
+		var XAuth XAuth
+		n := len(valueList)
+		if n != 1 {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for x-auth, got %d", n))
+		}
+
+		err = runtime.BindStyledParameter("simple", false, "x-auth", valueList[0], &XAuth)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter x-auth: %s", err))
+		}
+
+		params.XAuth = XAuth
+	} else {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Header parameter x-auth is required, but not found"))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.ListFollower(ctx, account, params)
+	return err
+}
+
+// ListFollowing converts echo context to params.
+func (w *ServerInterfaceWrapper) ListFollowing(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "account" -------------
+	var account Account
+
+	err = runtime.BindStyledParameter("simple", false, "account", ctx.Param("account"), &account)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter account: %s", err))
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListFollowingParams
+
+	headers := ctx.Request().Header
+	// ------------- Required header parameter "x-auth" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("x-auth")]; found {
+		var XAuth XAuth
+		n := len(valueList)
+		if n != 1 {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for x-auth, got %d", n))
+		}
+
+		err = runtime.BindStyledParameter("simple", false, "x-auth", valueList[0], &XAuth)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter x-auth: %s", err))
+		}
+
+		params.XAuth = XAuth
+	} else {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Header parameter x-auth is required, but not found"))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.ListFollowing(ctx, account, params)
 	return err
 }
 
@@ -449,6 +531,8 @@ func RegisterHandlers(router interface {
 
 	router.POST("/API/comment/post/:id", wrapper.CreateComment)
 	router.GET("/API/person/:account", wrapper.ProfileInfo)
+	router.GET("/API/person/:account/follower", wrapper.ListFollower)
+	router.GET("/API/person/:account/following", wrapper.ListFollowing)
 	router.GET("/API/person/:account/posts", wrapper.ListProfilePosts)
 	router.POST("/API/post/", wrapper.CreatePost)
 	router.GET("/API/post/:id", wrapper.ShowPost)
@@ -465,33 +549,34 @@ func RegisterHandlers(router interface {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"qn8CAAD//7Gm+xtXJQAA",
+	"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",
 }
 
 // GetSwagger returns the Swagger specification corresponding to the generated code
