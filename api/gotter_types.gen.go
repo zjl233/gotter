@@ -176,6 +176,13 @@ type ShowPostParams struct {
 	XAuth XAuth `json:"x-auth"`
 }
 
+// SearchUserParams defines parameters for SearchUser.
+type SearchUserParams struct {
+
+	// jwt auth
+	XAuth XAuth `json:"x-auth"`
+}
+
 // RefreshParams defines parameters for Refresh.
 type RefreshParams struct {
 
