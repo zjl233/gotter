@@ -32,6 +32,34 @@ func BuildUser(u *ent.User) api.User {
 	}
 }
 
+// Like BuildUser but add followings' post
+func BuildTLUser(ctx context.Context, u *ent.User) api.User {
+	flrs := u.QueryFollowers().IDsX(ctx)
+	if flrs == nil {
+		flrs = []int{}
+	}
+	flws := u.QueryFollowing().IDsX(ctx)
+	if flws == nil {
+		flws = []int{}
+	}
+	ps := u.QueryPosts().IDsX(ctx)
+	if ps == nil {
+		ps = []int{}
+	}
+	flwsps := u.QueryFollowing().QueryPosts().IDsX(ctx)
+	ps = append(ps, flwsps...)
+	return api.User{
+		Id:         u.ID,
+		Account:    u.Account,
+		BkgWallImg: u.BkgWallImg,
+		Follower:   flrs,
+		Following:  flws,
+		Name:       u.Name,
+		Posts:      ps,
+		ProfileImg: u.ProfileImg,
+	}
+}
+
 // Author serializer simple version User
 func BuildAuthor(u *ent.User) api.Author {
 	return api.Author{

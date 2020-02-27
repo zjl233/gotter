@@ -36,7 +36,7 @@ func (s *PostSrv) Login(ctx echo.Context) error {
 
 	return ctx.JSON(200, map[string]interface{}{
 		"result": true,
-		"user":   serializer.BuildUser(u),
+		"user":   serializer.BuildTLUser(c, u),
 	})
 }
 
@@ -76,7 +76,7 @@ func (s *PostSrv) SignUp(ctx echo.Context) error {
 
 	return ctx.JSON(200, map[string]interface{}{
 		"result": true,
-		"user":   serializer.BuildUser(u),
+		"user":   serializer.BuildTLUser(c, u),
 	})
 
 }
@@ -92,7 +92,7 @@ func (s *PostSrv) Refresh(ctx echo.Context, params api.RefreshParams) error {
 	ctx.Response().Header().Set("x-auth", string(params.XAuth))
 	return ctx.JSON(200, map[string]interface{}{
 		"result": true,
-		"user":   serializer.BuildUser(u),
+		"user":   serializer.BuildTLUser(ctx.Request().Context(), u),
 	})
 
 }
@@ -105,7 +105,7 @@ func (s *PostSrv) Info(ctx echo.Context, params api.InfoParams) error {
 
 	return ctx.JSON(200, map[string]interface{}{
 		"result": true,
-		"user":   serializer.BuildUser(u),
+		"user":   serializer.BuildTLUser(ctx.Request().Context(), u),
 	})
 
 }
