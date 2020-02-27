@@ -3,6 +3,7 @@ package srv
 import (
 	"github.com/labstack/echo/v4"
 	"github.com/zjl233/gotter/api"
+	"github.com/zjl233/gotter/ent"
 	"github.com/zjl233/gotter/ent/post"
 	"github.com/zjl233/gotter/serializer"
 	"net/http"
@@ -53,7 +54,7 @@ func (s *PostSrv) ListPosts(ctx echo.Context, params api.ListPostsParams) error 
 		return ErrorRes(ctx, http.StatusUnauthorized, "unauthorized", err)
 	}
 
-	ps := u.QueryPosts().AllX(ctx.Request().Context())
+	ps := u.QueryPosts().Order(ent.Desc(post.FieldCreatedAt)).AllX(ctx.Request().Context())
 
 	return ctx.JSON(200, map[string]interface{}{
 		"result": true,
