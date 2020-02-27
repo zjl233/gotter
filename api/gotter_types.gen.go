@@ -87,6 +87,9 @@ type User struct {
 	ProfileImg string `json:"profileImg"`
 }
 
+// Account defines model for account.
+type Account string
+
 // Id defines model for id.
 type Id int
 
@@ -109,6 +112,20 @@ type CreateCommentJSONBody struct {
 
 // CreateCommentParams defines parameters for CreateComment.
 type CreateCommentParams struct {
+
+	// jwt auth
+	XAuth XAuth `json:"x-auth"`
+}
+
+// ProfileInfoParams defines parameters for ProfileInfo.
+type ProfileInfoParams struct {
+
+	// jwt auth
+	XAuth XAuth `json:"x-auth"`
+}
+
+// ListProfilePostsParams defines parameters for ListProfilePosts.
+type ListProfilePostsParams struct {
 
 	// jwt auth
 	XAuth XAuth `json:"x-auth"`
@@ -142,6 +159,20 @@ type RefreshParams struct {
 
 // SignUpJSONBody defines parameters for SignUp.
 type SignUpJSONBody NewUser
+
+// DeleteFollowParams defines parameters for DeleteFollow.
+type DeleteFollowParams struct {
+
+	// jwt auth
+	XAuth XAuth `json:"x-auth"`
+}
+
+// CreateFollowParams defines parameters for CreateFollow.
+type CreateFollowParams struct {
+
+	// jwt auth
+	XAuth XAuth `json:"x-auth"`
+}
 
 // InfoParams defines parameters for Info.
 type InfoParams struct {

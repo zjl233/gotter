@@ -14,6 +14,95 @@ info:
 servers:
   - url: http://localhost:8080
 paths:
+  /API/user/follow/{account}:
+    get:
+      description: create follow relationship between current user and account
+      operationId: createFollow
+      parameters:
+        - $ref: "#/components/parameters/x-auth"
+        - $ref: "#/components/parameters/account"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: boolean
+        default:
+          $ref: '#/components/responses/Error'
+
+
+    delete:
+      description: create follow relationship between current user and account
+      operationId: deleteFollow
+      parameters:
+        - $ref: "#/components/parameters/x-auth"
+        - $ref: "#/components/parameters/account"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: boolean
+        default:
+          $ref: '#/components/responses/Error'
+
+
+
+  /API/person/{account}/posts:
+    get:
+      description: return account's posts list
+      operationId: listProfilePosts
+      parameters:
+        - $ref: "#/components/parameters/x-auth"
+        - $ref: "#/components/parameters/account"
+      responses:
+        "200":
+          description: account's post list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: boolean
+                  posts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Post"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /API/person/{account}:
+    get:
+      description: return account's profile info, like info
+      operationId: profileInfo
+      parameters:
+        - $ref: "#/components/parameters/x-auth"
+        - $ref: "#/components/parameters/account"
+      responses:
+        "200":
+          description: account's user info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: boolean
+                  person:
+                    $ref: "#/components/schemas/User"
+                  isFollowing:
+                    type: boolean
+        default:
+          $ref: "#/components/responses/Error"
   /API/post/{id}:
     get:
       description: expand a post
@@ -22,7 +111,7 @@ paths:
         - $ref: "#/components/parameters/x-auth"
         - $ref: "#/components/parameters/id"
       responses:
-        '200':
+        "200":
           description: expand post's likes user, comment and author
           content:
             application/json:
@@ -32,9 +121,9 @@ paths:
                   result:
                     type: boolean
                   posts:
-                    $ref: '#/components/schemas/PostExp'
+                    $ref: "#/components/schemas/PostExp"
         default:
-          $ref: '#/components/responses/Error'
+          $ref: "#/components/responses/Error"
 
   /API/user/posts:
     get:
@@ -43,7 +132,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/x-auth"
       responses:
-        '200':
+        "200":
           description: list user and following's posts
           content:
             application/json:
@@ -55,9 +144,9 @@ paths:
                   posts:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Post'
+                      $ref: "#/components/schemas/Post"
         default:
-          $ref: '#/components/responses/Error'
+          $ref: "#/components/responses/Error"
 
   /API/post/:
     post:
@@ -78,7 +167,7 @@ paths:
               required:
                 - content
       responses:
-        '201':
+        "201":
           description: created success
           content:
             application/json:
@@ -88,9 +177,9 @@ paths:
                   result:
                     type: boolean
                   post:
-                    $ref: '#/components/schemas/Post'
+                    $ref: "#/components/schemas/Post"
         default:
-          $ref: '#/components/responses/Error'
+          $ref: "#/components/responses/Error"
 
   /API/comment/post/{id}:
     post:
@@ -112,7 +201,7 @@ paths:
               required:
                 - content
       responses:
-        '201':
+        "201":
           description: created success
           content:
             application/json:
@@ -124,9 +213,9 @@ paths:
                   post:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Comment'
+                      $ref: "#/components/schemas/Comment"
         default:
-          $ref: '#/components/responses/Error'
+          $ref: "#/components/responses/Error"
 
   /API/user/:
     post:
@@ -140,7 +229,7 @@ paths:
             schema:
               $ref: "#/components/schemas/NewUser"
       responses:
-        '201':
+        "201":
           description: New user created
           headers:
             x-auth:
@@ -154,7 +243,7 @@ paths:
                   result:
                     type: boolean
                   user:
-                    $ref: '#/components/schemas/User'
+                    $ref: "#/components/schemas/User"
         default:
           $ref: "#/components/responses/Error"
 
@@ -178,9 +267,9 @@ paths:
                   result:
                     type: boolean
                   user:
-                    $ref: '#/components/schemas/User'
+                    $ref: "#/components/schemas/User"
         default:
-          $ref: '#/components/responses/Error'
+          $ref: "#/components/responses/Error"
 
   /API/user/login:
     post:
@@ -202,7 +291,7 @@ paths:
                   type: string
                   format: password
       responses:
-        '200':
+        "200":
           description: Login success
           headers:
             x-auth:
@@ -216,7 +305,7 @@ paths:
                   result:
                     type: boolean
                   user:
-                    $ref: '#/components/schemas/User'
+                    $ref: "#/components/schemas/User"
         default:
           $ref: "#/components/responses/Error"
 
@@ -237,10 +326,9 @@ paths:
                   result:
                     type: boolean
                   user:
-                    $ref: '#/components/schemas/User'
+                    $ref: "#/components/schemas/User"
         default:
-          $ref: '#/components/responses/Error'
-
+          $ref: "#/components/responses/Error"
 
 #  /posts:
 #    get:
@@ -401,7 +489,7 @@ components:
         content:
           type: string
         author:
-          $ref: '#/components/schemas/Author'
+          $ref: "#/components/schemas/Author"
         likes:
           type: array
           items:
@@ -414,7 +502,7 @@ components:
           nullable: false
         created:
           type: string
-          format: 'date-time'
+          format: "date-time"
 
     # Explode Post
     PostExp:
@@ -454,14 +542,14 @@ components:
         likes:
           type: array
           items:
-            $ref: '#/components/schemas/Author'
+            $ref: "#/components/schemas/Author"
         comments:
           type: array
           items:
-            $ref: '#/components/schemas/Comment'
+            $ref: "#/components/schemas/Comment"
         created:
           type: string
-          format: 'date-time'
+          format: "date-time"
 
     Comment:
       required:
@@ -475,10 +563,10 @@ components:
         content:
           type: string
         user:
-          $ref: '#/components/schemas/Author'
+          $ref: "#/components/schemas/Author"
         created:
           type: string
-          format: 'date-time'
+          format: "date-time"
 
     NewUser:
       required:
@@ -509,7 +597,6 @@ components:
           minLength: 8
           maxLength: 20
           description: Must same as password
-
 
   responses:
     Error:
@@ -546,9 +633,13 @@ components:
       required: true
       schema:
         type: integer
-
-
-
+    account:
+      name: account
+      in: path
+      description: account of user
+      required: true
+      schema:
+        type: string
   # securitySchemes:
   #   bearerAuth:
   #     type: http

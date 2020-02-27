@@ -96,16 +96,3 @@ func (s *PostSrv) Refresh(ctx echo.Context, params api.RefreshParams) error {
 	})
 
 }
-
-func (s *PostSrv) Info(ctx echo.Context, params api.InfoParams) error {
-	u, err := s.UserByJWT(ctx, params.XAuth)
-	if err != nil {
-		return ErrorRes(ctx, http.StatusUnauthorized, "unauthorized", err)
-	}
-
-	return ctx.JSON(200, map[string]interface{}{
-		"result": true,
-		"user":   serializer.BuildTLUser(ctx.Request().Context(), u),
-	})
-
-}
