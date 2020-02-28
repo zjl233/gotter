@@ -16,11 +16,12 @@ demo www.giligilimmoe.com
 
 ## Model relationship
 
-![model_relationship](./img/public.uml)
+![model_relationship](./img/gotter_model_relation.png)
 
 
 ## Project Structure
 
+```
 .
 ├── api            // api interface
 │   ├── gotter_server.gen.go  
@@ -55,7 +56,7 @@ demo www.giligilimmoe.com
      ├── post.go
      ├── search.go
      └── user.go
-
+```
 
 ## Stack
 
