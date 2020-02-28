@@ -2,7 +2,7 @@
 
 Yet another twitter clone
 
-demo www.giligilimoe.com
+demo www.giligilimoe.com (in HongKong)
 
 ## Screenshot
 
