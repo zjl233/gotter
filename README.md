@@ -2,7 +2,7 @@
 
 Yet another twitter clone
 
-demo www.giligilimmoe.com
+demo www.giligilimoe.com
 
 ## Screenshot
 
