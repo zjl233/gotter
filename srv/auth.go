@@ -8,6 +8,7 @@ import (
 	"github.com/zjl233/gotter/serializer"
 	"gopkg.in/hlandau/passlib.v1"
 	"net/http"
+	"regexp"
 )
 
 func (s *PostSrv) Login(ctx echo.Context) error {
@@ -45,6 +46,23 @@ func (s *PostSrv) SignUp(ctx echo.Context) error {
 	if err := ctx.Bind(&body); err != nil {
 		return ErrorRes(ctx, http.StatusBadRequest, "body bind error", err)
 	}
+
+	if len(body.Account) < 1 || len(body.Account) > 15 {
+		return ErrorRes(ctx, http.StatusBadRequest, "account len between 1 to 15", errors.New("empty"))
+	}
+
+	if !regexp.MustCompile("[0-9a-zA-Z_]+$").MatchString(body.Account) {
+		return ErrorRes(ctx, http.StatusBadRequest, "account only contain english character and number", errors.New("empty"))
+	}
+
+	if len(body.Name) < 1 || len(body.Name) > 15 {
+		return ErrorRes(ctx, http.StatusBadRequest, "nickname len between 1 to 15", errors.New("empty"))
+	}
+
+	if len(body.Password) < 8 {
+		return ErrorRes(ctx, http.StatusBadRequest, "password len must greater than 8", errors.New(""))
+	}
+
 	if body.Password != body.Password2 {
 		return ErrorRes(ctx, http.StatusBadRequest, "password not confirmed", errors.New(""))
 	}
