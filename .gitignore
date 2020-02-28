@@ -96,3 +96,5 @@ fabric.properties
 !/spec/rest-client.env.json
 spec/rest-client.private.env.json
 .env
+
+docker-compose.yml

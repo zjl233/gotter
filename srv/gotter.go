@@ -84,6 +84,12 @@ func (s *PostSrv) UserByJWT(ctx echo.Context, xauth api.XAuth) (*ent.User, error
 	return u, nil
 }
 
+func (s *PostSrv) Ping(ctx echo.Context) error {
+	return ctx.JSON(200, map[string]interface{}{
+		"msg": "pong",
+	})
+}
+
 //func (s *PostSrv) FindPosts(ctx echo.Context, params FindPostsParams) error {
 //	panic("implement me")
 //}

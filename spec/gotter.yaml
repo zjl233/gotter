@@ -14,6 +14,21 @@ info:
 servers:
   - url: http://localhost:8080
 paths:
+  /API/ping:
+    get:
+      description: health check
+      operationId: ping
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+
   /API/post/{id}/like:
     get:
       description: like post

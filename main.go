@@ -20,16 +20,19 @@ import (
 	"github.com/zjl233/gotter/srv"
 	"log"
 	"os"
+	"strconv"
 )
 
 func main() {
-	// load env
-	err := godotenv.Load()
-	if err != nil {
-		log.Panic("load env failed", err)
-	}
+	fmt.Println("start")
 
-	var port = flag.Int("port", 3001, "Port for test HTTP server")
+	// load env
+	_ = godotenv.Load()
+
+	port, err := strconv.ParseInt(os.Getenv("PORT"), 10, 32)
+	if err != nil {
+		log.Fatal("parse port error")
+	}
 	flag.Parse()
 
 	swagger, err := api.GetSwagger()
@@ -43,8 +46,9 @@ func main() {
 	swagger.Servers = nil
 
 	//  ==============db================
-	connString := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=",
-		os.Getenv("PG_HOST"), os.Getenv("PG_PORT"), os.Getenv("PG_USER"), os.Getenv("PG_DB"))
+	connString := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
+		os.Getenv("PG_HOST"), os.Getenv("PG_PORT"), os.Getenv("PG_USER"), os.Getenv("PG_DB"), os.Getenv("PG_PASSWORD"))
+	fmt.Println("++++++++++++++ db address: ", connString, "++++++++++++++++++++++++++")
 	client, err := ent.Open("postgres", connString)
 	if err != nil {
 		log.Fatalf("failed connecting to psql: %v", err)
@@ -77,5 +81,5 @@ func main() {
 	api.RegisterHandlers(e, petStore)
 
 	// And we serve HTTP until the world ends.
-	e.Logger.Fatal(e.Start(fmt.Sprintf("0.0.0.0:%d", *port)))
+	e.Logger.Fatal(e.Start(fmt.Sprintf("0.0.0.0:%d", port)))
 }
