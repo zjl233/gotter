@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>DATABASE</ID>
+  <OriginalElement>353e72d0-5f8b-43ea-b82a-099be3091f5a.SCHEMA:conduit.public</OriginalElement>
+  <nodes>
+    <node x="683.0" y="612.0">353e72d0-5f8b-43ea-b82a-099be3091f5a.TABLE:conduit.public.user_following</node>
+    <node x="387.12499999999994" y="0.0">353e72d0-5f8b-43ea-b82a-099be3091f5a.TABLE:conduit.public.users</node>
+    <node x="240.99999999999994" y="515.0">353e72d0-5f8b-43ea-b82a-099be3091f5a.TABLE:conduit.public.auth_tokens</node>
+    <node x="0.0" y="576.5">353e72d0-5f8b-43ea-b82a-099be3091f5a.TABLE:conduit.public.posts</node>
+    <node x="403.87499999999994" y="897.0">353e72d0-5f8b-43ea-b82a-099be3091f5a.TABLE:conduit.public.comments</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="353e72d0-5f8b-43ea-b82a-099be3091f5a.TABLE:conduit.public.users" target="353e72d0-5f8b-43ea-b82a-099be3091f5a.TABLE:conduit.public.posts">
+      <point x="-105.5" y="227.5" />
+      <point x="492.62499999999994" y="485.0" />
+      <point x="165.75" y="485.0" />
+      <point x="55.25" y="-104.5" />
+    </edge>
+    <edge source="353e72d0-5f8b-43ea-b82a-099be3091f5a.TABLE:conduit.public.comments" target="353e72d0-5f8b-43ea-b82a-099be3091f5a.TABLE:conduit.public.users">
+      <point x="68.75" y="-125.0" />
+      <point x="610.125" y="872.0" />
+      <point x="938.5" y="872.0" />
+      <point x="938.5" y="475.0" />
+      <point x="773.9583333333333" y="475.0" />
+      <point x="175.83333333333337" y="227.5" />
+    </edge>
+    <edge source="353e72d0-5f8b-43ea-b82a-099be3091f5a.TABLE:conduit.public.posts" target="353e72d0-5f8b-43ea-b82a-099be3091f5a.TABLE:conduit.public.users">
+      <point x="-55.25" y="-104.5" />
+      <point x="55.25" y="475.0" />
+      <point x="422.29166666666663" y="475.0" />
+      <point x="-175.83333333333331" y="227.5" />
+    </edge>
+    <edge source="353e72d0-5f8b-43ea-b82a-099be3091f5a.TABLE:conduit.public.comments" target="353e72d0-5f8b-43ea-b82a-099be3091f5a.TABLE:conduit.public.posts">
+      <point x="-68.75" y="-125.0" />
+      <point x="472.62499999999994" y="872.0" />
+      <point x="110.5" y="872.0" />
+      <point x="0.0" y="104.5" />
+    </edge>
+    <edge source="353e72d0-5f8b-43ea-b82a-099be3091f5a.TABLE:conduit.public.user_following" target="353e72d0-5f8b-43ea-b82a-099be3091f5a.TABLE:conduit.public.users">
+      <point x="-61.25" y="-69.0" />
+      <point x="744.25" y="495.0" />
+      <point x="633.2916666666665" y="495.0" />
+      <point x="35.16666666666663" y="227.5" />
+    </edge>
+    <edge source="353e72d0-5f8b-43ea-b82a-099be3091f5a.TABLE:conduit.public.auth_tokens" target="353e72d0-5f8b-43ea-b82a-099be3091f5a.TABLE:conduit.public.users">
+      <point x="0.0" y="-166.0" />
+      <point x="451.99999999999994" y="495.0" />
+      <point x="562.9583333333333" y="495.0" />
+      <point x="-35.16666666666663" y="227.5" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="0.6923736075407027" x="537.0" y="573.5" />
+  <SelectedNodes>
+    <node>353e72d0-5f8b-43ea-b82a-099be3091f5a.TABLE:conduit.public.comments</node>
+  </SelectedNodes>
+  <Categories>
+    <Category>Key columns</Category>
+    <Category>Columns</Category>
+    <Category>Virtual foreign keys</Category>
+  </Categories>
+</Diagram>
+
