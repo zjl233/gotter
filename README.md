@@ -60,7 +60,9 @@ demo www.giligilimoe.com
 
 ## Stack
 
-vue, golang, psql, nginx docker, openapi
+Vue, Nginx  
+OpenAPI  
+Golang, Postgres, Docker, OpenAPI  
 
 ## Install
 
