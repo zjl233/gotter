@@ -62,7 +62,7 @@ demo www.giligilimoe.com
 
 Vue, Nginx  
 OpenAPI  
-Golang, Postgres, Docker, OpenAPI  
+Golang, Postgres, Docker
 
 ## Install
 
